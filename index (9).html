@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Historinha do Sono — seu filho é o herói da história de hoje</title>
+<meta name="description" content="Crie em 2 minutos uma historinha personalizada para dormir onde seu filho é o protagonista. Pronta para ler hoje à noite.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,650;0,9..144,750;1,9..144,500&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --night:#232358;
+  --night-deep:#141334;
+  --night-soft:#33327a;
+  --moon:#FFD98E;
+  --moon-glow:#ffe9bd;
+  --paper:#FFF9EF;
+  --paper-shade:#F3EADA;
+  --ink:#38325c;
+  --ink-soft:#6b649a;
+  --rose:#F5A3B7;
+  --lilac:#B8A7E8;
+  --star:#FFF3D6;
+  --radius:22px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Nunito',sans-serif;
+  background:var(--night-deep);
+  color:var(--paper);
+  line-height:1.6;
+  overflow-x:hidden;
+}
+h1,h2,h3,.display{font-family:'Fraunces',serif;font-weight:650;line-height:1.15}
+button{font-family:inherit;cursor:pointer;border:none}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--moon);outline-offset:3px;border-radius:6px}
+
+/* ---------- céu estrelado ---------- */
+.sky{position:relative;background:linear-gradient(180deg,var(--night-deep) 0%,var(--night) 55%,var(--night-soft) 100%);overflow:hidden}
+.star-layer{position:absolute;inset:0;pointer-events:none;background-repeat:repeat;background-size:520px 520px;opacity:.9}
+.star-layer.a{background-image:radial-gradient(1.6px 1.6px at 40px 60px,var(--star) 99%,transparent),radial-gradient(1.2px 1.2px at 190px 140px,var(--star) 99%,transparent),radial-gradient(2px 2px at 330px 40px,var(--star) 99%,transparent),radial-gradient(1.3px 1.3px at 460px 210px,var(--star) 99%,transparent),radial-gradient(1.7px 1.7px at 110px 320px,var(--star) 99%,transparent),radial-gradient(1.2px 1.2px at 280px 430px,var(--star) 99%,transparent),radial-gradient(1.8px 1.8px at 420px 380px,var(--star) 99%,transparent)}
+.star-layer.b{background-image:radial-gradient(1.2px 1.2px at 90px 200px,var(--star) 99%,transparent),radial-gradient(1.5px 1.5px at 240px 70px,var(--star) 99%,transparent),radial-gradient(1.1px 1.1px at 380px 260px,var(--star) 99%,transparent),radial-gradient(1.6px 1.6px at 60px 440px,var(--star) 99%,transparent),radial-gradient(1.2px 1.2px at 480px 90px,var(--star) 99%,transparent);animation:twinkle 4.5s ease-in-out infinite alternate}
+@keyframes twinkle{from{opacity:.35}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){
+  .star-layer.b{animation:none}
+  *{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}
+
+/* ---------- topbar ---------- */
+.topbar{position:relative;z-index:3;display:flex;justify-content:space-between;align-items:center;max-width:1080px;margin:0 auto;padding:22px 24px}
+.logo{font-family:'Fraunces',serif;font-weight:650;font-size:1.25rem;letter-spacing:.2px;display:flex;align-items:center;gap:8px}
+.logo .dot{color:var(--moon)}
+.topbar .btn-ghost{background:transparent;color:var(--paper);border:1.5px solid rgba(255,249,239,.35);padding:9px 18px;border-radius:999px;font-weight:700;font-size:.9rem;transition:border-color .2s}
+.topbar .btn-ghost:hover{border-color:var(--moon)}
+
+/* ---------- hero ---------- */
+.hero{position:relative;z-index:2;max-width:880px;margin:0 auto;padding:64px 24px 110px;text-align:center}
+.moon{position:absolute;top:30px;right:6%;width:92px;height:92px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff4d8,var(--moon) 70%);box-shadow:0 0 60px 18px rgba(255,217,142,.35),0 0 140px 50px rgba(255,217,142,.12);z-index:1}
+.eyebrow{display:inline-block;font-size:.8rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--lilac);background:rgba(184,167,232,.12);border:1px solid rgba(184,167,232,.35);padding:6px 16px;border-radius:999px;margin-bottom:26px}
+.hero h1{font-size:clamp(2.3rem,6vw,4rem);margin-bottom:8px}
+.hero h1 .name-slot{
+  display:inline-block;min-width:3ch;color:var(--moon);font-style:italic;font-weight:750;
+  border-bottom:3px dashed rgba(255,217,142,.55);padding:0 .18em;border-radius:6px;
+  transition:background .2s;
+}
+.hero h1 .name-slot:hover{background:rgba(255,217,142,.08)}
+.hero h1 .name-slot:focus{outline:none;background:rgba(255,217,142,.12);border-bottom-color:var(--moon)}
+.hero .hint{font-size:.85rem;color:var(--lilac);margin-bottom:22px;font-weight:700}
+.hero .sub{font-size:1.15rem;color:rgba(255,249,239,.85);max-width:560px;margin:0 auto 36px}
+.btn-primary{
+  background:linear-gradient(180deg,#ffe3a8,var(--moon));color:#4a3a12;font-weight:800;font-size:1.08rem;
+  padding:17px 34px;border-radius:999px;box-shadow:0 8px 28px rgba(255,217,142,.35),inset 0 1px 0 #fff6e0;
+  transition:transform .15s, box-shadow .2s;
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 34px rgba(255,217,142,.45),inset 0 1px 0 #fff6e0}
+.btn-primary:active{transform:translateY(0)}
+.micro{margin-top:18px;font-size:.85rem;color:rgba(255,249,239,.6);font-weight:600}
+
+/* ---------- seções claras ---------- */
+.section{padding:88px 24px}
+.section.light{background:var(--paper);color:var(--ink)}
+.section.shade{background:var(--paper-shade);color:var(--ink)}
+.wrap{max-width:1000px;margin:0 auto}
+.section h2{font-size:clamp(1.7rem,4vw,2.4rem);text-align:center;margin-bottom:14px}
+.section .lead{text-align:center;color:var(--ink-soft);max-width:600px;margin:0 auto 52px;font-size:1.05rem}
+
+/* passos como páginas de livro */
+.steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+.step-card{
+  background:#fff;border-radius:6px var(--radius) var(--radius) 6px;padding:30px 26px;
+  border-left:5px solid var(--lilac);box-shadow:0 10px 30px rgba(56,50,92,.08);position:relative;
+}
+.step-card:nth-child(2){border-left-color:var(--rose)}
+.step-card:nth-child(3){border-left-color:var(--moon)}
+.step-card .step-emoji{font-size:2rem;margin-bottom:14px;display:block}
+.step-card h3{font-size:1.2rem;margin-bottom:10px}
+.step-card p{color:var(--ink-soft);font-size:.97rem}
+
+/* exemplo de página */
+.sample-stage{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+.sample-book{
+  background:#fff;border-radius:var(--radius);overflow:hidden;
+  box-shadow:0 24px 60px rgba(56,50,92,.16), 0 3px 0 var(--paper-shade);
+  transform:rotate(-1.5deg);
+}
+.sample-illus{background:linear-gradient(160deg,var(--night) 0%,var(--night-soft) 100%)}
+.sample-illus svg{display:block;width:100%;height:auto}
+.sample-text{padding:30px 32px 34px}
+.sample-text .page-num{font-size:.75rem;font-weight:800;letter-spacing:.12em;color:var(--lilac);text-transform:uppercase;margin-bottom:10px}
+.sample-text p{font-family:'Fraunces',serif;font-weight:500;font-size:1.08rem;color:var(--ink);line-height:1.7}
+.sample-copy h3{font-size:1.55rem;margin-bottom:16px}
+.sample-copy p{color:var(--ink-soft);margin-bottom:14px}
+.sample-copy .tick{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;font-size:.98rem;color:var(--ink)}
+.sample-copy .tick span:first-child{color:var(--moon);filter:brightness(.75);font-weight:800}
+
+/* preço */
+.price-stage{display:flex;gap:26px;justify-content:center;align-items:stretch;flex-wrap:wrap}
+.price-card{background:#fff;border-radius:var(--radius);padding:36px 34px;max-width:390px;flex:1 1 320px;box-shadow:0 16px 44px rgba(56,50,92,.12);text-align:center;position:relative}
+.price-card.anchor{background:transparent;border:2px dashed rgba(107,100,154,.35);box-shadow:none;color:var(--ink-soft)}
+.price-card.anchor h3{color:var(--ink-soft)}
+.price-card .tag{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:var(--rose);color:#5c2436;font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:6px 16px;border-radius:999px}
+.price-card h3{font-size:1.15rem;margin-bottom:6px}
+.price-card .val{font-family:'Fraunces',serif;font-size:2.6rem;font-weight:750;margin:10px 0 4px;color:var(--ink)}
+.price-card .val.strike{text-decoration:line-through;font-size:1.6rem;color:var(--ink-soft)}
+.price-card ul{list-style:none;text-align:left;margin:20px 0 26px}
+.price-card li{padding:7px 0;font-size:.95rem;border-bottom:1px solid var(--paper-shade)}
+.price-card li:last-child{border:none}
+.price-card .btn-primary{width:100%;font-size:1rem}
+.guarantee{text-align:center;margin-top:30px;font-size:.9rem;color:var(--ink-soft)}
+
+/* faq */
+.faq-list{max-width:640px;margin:0 auto}
+.faq-list details{background:#fff;border-radius:14px;margin-bottom:12px;padding:18px 22px;box-shadow:0 6px 18px rgba(56,50,92,.06)}
+.faq-list summary{font-weight:800;cursor:pointer;color:var(--ink);list-style:none;display:flex;justify-content:space-between;align-items:center}
+.faq-list summary::after{content:"+";font-family:'Fraunces',serif;font-size:1.3rem;color:var(--lilac)}
+.faq-list details[open] summary::after{content:"–"}
+.faq-list details p{margin-top:12px;color:var(--ink-soft);font-size:.95rem}
+
+footer{background:var(--night-deep);text-align:center;padding:40px 24px;font-size:.85rem;color:rgba(255,249,239,.5)}
+
+/* ---------- overlays (quiz / loading / livro) ---------- */
+.overlay{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;background:linear-gradient(180deg,var(--night-deep),var(--night));overflow-y:auto}
+[hidden]{display:none !important}
+
+/* quiz */
+.quiz-head{display:flex;align-items:center;gap:16px;padding:20px 24px;max-width:640px;margin:0 auto;width:100%}
+.quiz-back{background:transparent;color:var(--lilac);font-weight:800;font-size:.95rem;padding:8px 12px;border-radius:10px}
+.quiz-back:hover{background:rgba(184,167,232,.12)}
+.progress{flex:1;height:8px;background:rgba(255,249,239,.12);border-radius:99px;overflow:hidden}
+.progress .bar{height:100%;width:0;background:linear-gradient(90deg,var(--lilac),var(--moon));border-radius:99px;transition:width .35s ease}
+.quiz-body{flex:1;display:flex;flex-direction:column;justify-content:center;max-width:640px;margin:0 auto;width:100%;padding:20px 24px 60px}
+.quiz-q{font-size:clamp(1.5rem,4vw,2.1rem);text-align:center;margin-bottom:8px}
+.quiz-sub{text-align:center;color:var(--lilac);margin-bottom:34px;font-weight:600;font-size:.95rem}
+.opt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+.opt{
+  background:rgba(255,249,239,.06);border:2px solid rgba(255,249,239,.16);color:var(--paper);
+  border-radius:18px;padding:20px 14px;font-weight:700;font-size:1rem;text-align:center;
+  transition:all .15s;display:flex;flex-direction:column;gap:8px;align-items:center;
+}
+.opt .big{font-size:1.9rem}
+.opt:hover{border-color:var(--lilac);background:rgba(184,167,232,.12);transform:translateY(-2px)}
+.opt.sel{border-color:var(--moon);background:rgba(255,217,142,.14)}
+.quiz-input{
+  width:100%;background:rgba(255,249,239,.07);border:2px solid rgba(255,249,239,.2);color:var(--paper);
+  border-radius:16px;padding:18px 20px;font-size:1.15rem;font-family:inherit;font-weight:700;text-align:center;
+}
+.quiz-input::placeholder{color:rgba(255,249,239,.35);font-weight:600}
+.quiz-input:focus{outline:none;border-color:var(--moon)}
+.quiz-next{margin-top:30px;align-self:center}
+
+/* construtor de avatar */
+.avatar-stage{display:flex;flex-direction:column;align-items:center;gap:16px}
+.avatar-preview{width:160px;height:200px;background:radial-gradient(circle at 50% 30%,rgba(184,167,232,.18),rgba(255,249,239,.05));border:2px solid rgba(255,249,239,.16);border-radius:22px;display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
+.avatar-preview.big{width:180px;height:216px}
+.avatar-preview svg{width:150px;height:auto;margin-bottom:6px}
+.av-tabs{display:flex;gap:8px;background:rgba(255,249,239,.06);padding:5px;border-radius:14px}
+.av-tab{background:transparent;color:rgba(255,249,239,.6);font-weight:800;font-size:.85rem;padding:8px 18px;border-radius:10px;transition:all .15s}
+.av-tab.on{background:rgba(255,217,142,.16);color:var(--moon)}
+.av-panel{width:100%}
+.av-rows{width:100%}
+.av-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:center;margin-bottom:14px}
+.av-label{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--lilac);width:100%;text-align:center;margin-bottom:2px}
+.swatch{width:38px;height:38px;border-radius:50%;border:3px solid rgba(255,249,239,.2);cursor:pointer;transition:transform .12s}
+.swatch:hover{transform:scale(1.1)}
+.swatch.sel{border-color:var(--moon);box-shadow:0 0 0 3px rgba(255,217,142,.25)}
+.hair-opt{background:rgba(255,249,239,.06);border:2px solid rgba(255,249,239,.16);color:var(--paper);border-radius:12px;padding:9px 15px;font-weight:700;font-size:.85rem;transition:all .12s}
+.hair-opt:hover{border-color:var(--lilac)}
+.hair-opt.sel{border-color:var(--moon);background:rgba(255,217,142,.14)}
+
+/* loading */
+.loading-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;position:relative;z-index:2}
+.loading-moon{width:110px;height:110px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff4d8,var(--moon) 70%);box-shadow:0 0 70px 24px rgba(255,217,142,.35);animation:breathe 2.6s ease-in-out infinite;margin-bottom:36px}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.loading-msg{font-family:'Fraunces',serif;font-size:1.4rem;min-height:2.2em;color:var(--paper)}
+.loading-sub{color:var(--lilac);font-weight:600;margin-top:8px;font-size:.9rem}
+
+/* livro imersivo */
+.book-head{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;max-width:620px;margin:0 auto;width:100%;gap:12px}
+.book-title{font-family:'Fraunces',serif;font-size:.95rem;font-weight:650;color:var(--moon);text-align:center;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn-small{background:rgba(255,249,239,.1);color:var(--paper);border:1.5px solid rgba(255,249,239,.25);padding:8px 15px;border-radius:999px;font-weight:800;font-size:.8rem;white-space:nowrap}
+.btn-small:hover{border-color:var(--moon)}
+
+.book-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 16px 16px;position:relative;z-index:2;min-height:0}
+
+/* a "folha" do livro: proporção alta de página, ocupa a altura disponível */
+.book-sheet{
+  position:relative;width:100%;max-width:460px;
+  aspect-ratio:3/4.6;max-height:calc(100vh - 190px);
+  perspective:2200px;
+}
+.page-card{
+  position:absolute;inset:0;background:#fff;color:var(--ink);
+  border-radius:8px 18px 18px 8px;overflow:hidden;
+  box-shadow:0 30px 80px rgba(0,0,0,.5), inset 5px 0 12px -6px rgba(0,0,0,.14);
+  display:flex;flex-direction:column;
+  transform-origin:left center;backface-visibility:hidden;
+}
+/* lombada do livro */
+.page-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:14px;background:linear-gradient(90deg,rgba(0,0,0,.16),rgba(0,0,0,0));z-index:5;pointer-events:none}
+
+.page-illus{background:linear-gradient(160deg,var(--night) 0%,var(--night-soft) 100%);flex:1 1 auto;min-height:0;display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
+.page-illus svg{display:block;width:100%;height:100%;object-fit:cover;object-position:center bottom}
+.page-text{padding:22px 26px 24px;flex:0 0 auto;background:var(--paper);border-top:1px solid var(--paper-shade)}
+.page-text .page-num{font-size:.68rem;font-weight:800;letter-spacing:.14em;color:var(--lilac);text-transform:uppercase;margin-bottom:9px}
+.page-text p{font-family:'Fraunces',serif;font-weight:500;font-size:clamp(1rem,2.6vw,1.16rem);line-height:1.7}
+
+/* capa cheia */
+.page-cover-full{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px 26px;position:relative}
+.page-cover-full .cover-scene{position:absolute;inset:0;z-index:0}
+.page-cover-full .cover-scene svg{width:100%;height:100%;object-fit:cover}
+.page-cover-full .cover-inner{position:relative;z-index:1;background:linear-gradient(165deg,rgba(35,35,88,.72),rgba(20,19,52,.82));backdrop-filter:blur(3px);padding:30px 26px;border-radius:20px;border:1.5px solid rgba(255,217,142,.45);box-shadow:0 12px 40px rgba(0,0,0,.35), inset 0 0 30px rgba(255,217,142,.06)}
+.page-cover-full .cover-inner::before{content:"✦";position:absolute;top:10px;left:14px;color:rgba(255,217,142,.5);font-size:.8rem}
+.page-cover-full .cover-inner::after{content:"✦";position:absolute;bottom:10px;right:14px;color:rgba(255,217,142,.5);font-size:.8rem}
+.page-cover-full .c-eyebrow{font-size:.66rem;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--moon);margin-bottom:14px;opacity:.85}
+.page-cover-full .c-eyebrow::before,.page-cover-full .c-eyebrow::after{content:"·";margin:0 8px;opacity:.6}
+.page-cover-full h3{font-family:'Fraunces',serif;font-weight:750;font-size:clamp(1.6rem,5.5vw,2.2rem);color:var(--moon);margin-bottom:16px;line-height:1.12;text-shadow:0 2px 12px rgba(0,0,0,.3)}
+.page-cover-full .cover-rule{width:54px;height:2px;background:linear-gradient(90deg,transparent,rgba(255,217,142,.7),transparent);margin:0 auto 16px}
+.page-cover-full .dedic{font-style:italic;color:var(--paper);font-family:'Fraunces',serif;font-weight:500;font-size:.98rem;opacity:.92}
+
+/* animação de virar página */
+.page-card.turning-fwd{animation:turnFwd .5s ease-in forwards;z-index:8}
+.page-card.turning-back{animation:turnBack .5s ease-out forwards;z-index:8}
+@keyframes turnFwd{from{transform:rotateY(0)}to{transform:rotateY(-170deg)}}
+@keyframes turnBack{from{transform:rotateY(-170deg)}to{transform:rotateY(0)}}
+
+/* toque nas laterais para virar */
+.tap-zone{position:absolute;top:0;bottom:0;width:32%;z-index:6;cursor:pointer}
+.tap-zone.left{left:0}.tap-zone.right{right:0}
+.tap-hint{position:absolute;bottom:14px;font-size:1.5rem;opacity:0;pointer-events:none;z-index:7;color:var(--moon);animation:tapPulse 2.4s ease-in-out 1s 2}
+.tap-hint.right{right:16px}
+@keyframes tapPulse{0%,100%{opacity:0;transform:translateX(0)}50%{opacity:.55;transform:translateX(4px)}}
+
+.book-nav{display:flex;align-items:center;gap:16px;margin-top:16px;flex:0 0 auto}
+.nav-btn{width:46px;height:46px;border-radius:50%;background:rgba(255,249,239,.1);border:2px solid rgba(255,249,239,.25);color:var(--paper);font-size:1.2rem;font-weight:800;transition:all .15s}
+.nav-btn:hover:not(:disabled){border-color:var(--moon);background:rgba(255,217,142,.12)}
+.nav-btn:disabled{opacity:.3;cursor:default}
+.page-dots{display:flex;gap:6px}
+.page-dots .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,249,239,.25);transition:all .2s}
+.page-dots .dot.on{background:var(--moon);transform:scale(1.3)}
+.page-dots .dot.lock{background:rgba(245,163,183,.5)}
+
+/* paywall */
+.paywall{
+  background:#fff;color:var(--ink);border-radius:var(--radius);max-width:560px;width:100%;
+  box-shadow:0 30px 70px rgba(0,0,0,.45);padding:40px 36px;text-align:center;
+}
+.paywall .lock-emoji{font-size:2.6rem;display:block;margin-bottom:14px}
+.paywall h3{font-size:1.5rem;margin-bottom:10px}
+.paywall .p-sub{color:var(--ink-soft);margin-bottom:22px;font-size:.98rem}
+.paywall ul{list-style:none;text-align:left;margin:0 auto 26px;max-width:360px}
+.paywall li{padding:8px 0;font-size:.95rem;display:flex;gap:10px}
+.paywall li span:first-child{color:#c99127;font-weight:800}
+.paywall .price-line{font-family:'Fraunces',serif;font-size:2rem;font-weight:750;margin-bottom:18px}
+.paywall .price-line small{font-size:.9rem;color:var(--ink-soft);font-family:'Nunito',sans-serif;font-weight:600}
+.paywall .demo-link{display:block;margin-top:16px;font-size:.82rem;color:var(--ink-soft);background:none;text-decoration:underline}
+
+.error-card{background:#fff;color:var(--ink);border-radius:var(--radius);max-width:480px;padding:36px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.4)}
+.error-card h3{margin-bottom:12px}
+.error-card p{color:var(--ink-soft);margin-bottom:22px;font-size:.95rem}
+
+/* impressão do PDF */
+.print-book{display:none}
+@media print{
+  body > *:not(.print-book){display:none !important}
+  body{background:#fff}
+  .print-book{display:block;color:#38325c}
+  .print-page{page-break-after:always;text-align:center;padding:60px 40px;font-family:'Fraunces',serif}
+  .print-page .pi{margin:40px 0}
+  .print-page .pi svg{width:100%;max-width:480px;border-radius:18px}
+  .print-page p{font-size:1.25rem;line-height:1.9;max-width:520px;margin:0 auto}
+  .print-page h2{font-size:2.2rem;margin-bottom:16px}
+  .print-page .pn{font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;color:#B8A7E8;font-family:'Nunito',sans-serif;font-weight:800;margin-bottom:18px}
+}
+
+@media (max-width:760px){
+  .steps-grid{grid-template-columns:1fr}
+  .sample-stage{grid-template-columns:1fr;gap:34px}
+  .moon{width:64px;height:64px;top:14px;right:16px}
+  .section{padding:64px 20px}
+  .hero{padding:44px 20px 90px}
+  .page-text p{font-size:1.05rem}
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== LANDING ==================== -->
+<div id="landing" class="sky">
+  <div class="star-layer a"></div>
+  <div class="star-layer b"></div>
+
+  <header class="topbar">
+    <div class="logo"><span class="dot">☾</span> Historinha do Sono</div>
+    <button class="btn-ghost" onclick="startQuiz()">Criar historinha</button>
+  </header>
+
+  <section class="hero">
+    <div class="moon" aria-hidden="true"></div>
+    <span class="eyebrow">Histórias personalizadas para dormir</span>
+    <h1>Era uma vez... <span id="heroName" class="name-slot" contenteditable="true" spellcheck="false">Sofia</span></h1>
+    <p class="hint">↑ toque no nome e escreva o do seu filho</p>
+    <p class="sub">Em 2 minutos, uma historinha ilustrada onde <strong>seu filho é o herói</strong> — com o tema que ele ama e a lição que você quer ensinar. Pronta para ler hoje à noite.</p>
+    <button class="btn-primary" onclick="startQuiz()">Criar a historinha de <span id="heroNameBtn">Sofia</span> ✨</button>
+    <p class="micro">Leia o começo grátis &nbsp;·&nbsp; Pronta em 2 minutos &nbsp;·&nbsp; Sem app para instalar</p>
+  </section>
+</div>
+
+<section class="section light">
+  <div class="wrap">
+    <h2>A hora de dormir vira o melhor momento do dia</h2>
+    <p class="lead">Três passinhos entre a bagunça do jantar e o "boa noite" mais gostoso da semana.</p>
+    <div class="steps-grid">
+      <div class="step-card">
+        <span class="step-emoji">🧸</span>
+        <h3>1. Conte sobre seu filho</h3>
+        <p>Nome, idade, o que ele ama (dinossauros? sereias? futebol?) e a lição que você quer plantar. Leva 1 minuto.</p>
+      </div>
+      <div class="step-card">
+        <span class="step-emoji">🪄</span>
+        <h3>2. A mágica acontece</h3>
+        <p>Nossa fada-escritora cria na hora uma história única, com o nome do seu filho em cada página — que nunca existiu antes e é só dele.</p>
+      </div>
+      <div class="step-card">
+        <span class="step-emoji">🌙</span>
+        <h3>3. Leiam juntos hoje</h3>
+        <p>Abra no celular com as luzes baixas ou imprima em PDF. Prepare-se para ouvir "de novo! de novo!".</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section shade">
+  <div class="wrap sample-stage">
+    <div class="sample-book" aria-hidden="true">
+      <div class="sample-illus" id="sampleIllus"></div>
+      <div class="sample-text">
+        <div class="page-num">Página 3 · A historinha do Théo</div>
+        <p>Théo respirou fundo, do jeitinho que a mamãe ensinou, e olhou para o filhote de dinossauro perdido. "Não precisa ter medo", disse Théo. "Eu vou te ajudar a encontrar o caminho de casa."</p>
+      </div>
+    </div>
+    <div class="sample-copy">
+      <h3>Não é um livro qualquer. É o livro <em>dele</em>.</h3>
+      <p>Crianças prestam o dobro de atenção quando são as protagonistas — e é aí que a lição entra sem parecer bronca.</p>
+      <div class="tick"><span>✦</span><span>O nome do seu filho em todas as páginas</span></div>
+      <div class="tick"><span>✦</span><span>Seu filho desenhado nas ilustrações — você monta a carinha dele</span></div>
+      <div class="tick"><span>✦</span><span>Tema que ele escolhe, lição que você escolhe</span></div>
+      <div class="tick"><span>✦</span><span>Linguagem certa para a idade dele</span></div>
+      <div class="tick"><span>✦</span><span>Final tranquilo, feito para dar sono</span></div>
+      <div class="tick"><span>✦</span><span>PDF para imprimir e guardar de lembrança</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="section light" id="preco">
+  <div class="wrap">
+    <h2>Quanto custa criar essa memória?</h2>
+    <p class="lead">Menos que um lanche — e diferente do lanche, essa fica para sempre.</p>
+    <div class="price-stage">
+      <div class="price-card anchor">
+        <h3>Livro personalizado importado</h3>
+        <div class="val strike">R$ 250+</div>
+        <ul>
+          <li>3 a 5 semanas de espera</li>
+          <li>Frete internacional</li>
+          <li>Uma história só, sem ajustes</li>
+        </ul>
+      </div>
+      <div class="price-card">
+        <span class="tag">Pronta hoje à noite</span>
+        <h3>Historinha do Sono</h3>
+        <div class="val">R$ 19,90</div>
+        <ul>
+          <li>✦ História completa e única do seu filho</li>
+          <li>✦ Pronta em 2 minutos, lê hoje à noite</li>
+          <li>✦ PDF ilustrado para imprimir e guardar</li>
+          <li>✦ Não gostou? Devolvemos em até 7 dias</li>
+        </ul>
+        <button class="btn-primary" onclick="startQuiz()">Criar minha historinha ✨</button>
+      </div>
+    </div>
+    <p class="guarantee">🛡️ Garantia simples: se a historinha não arrancar um sorriso, devolvemos seu dinheiro em até 7 dias. Sem perguntas.</p>
+  </div>
+</section>
+
+<section class="section shade">
+  <div class="wrap">
+    <h2>Perguntas de pais espertos</h2>
+    <p class="lead">&nbsp;</p>
+    <div class="faq-list">
+      <details>
+        <summary>Serve para qual idade?</summary>
+        <p>De 2 a 10 anos. A história se adapta: frases curtinhas e repetição gostosa para os pequenos, aventura com mais camadas para os maiores.</p>
+      </details>
+      <details>
+        <summary>Posso criar mais de uma história?</summary>
+        <p>Pode! Cada história é comprada separadamente — muitos pais criam uma nova por semana ou uma para cada filho. Cada uma é única.</p>
+      </details>
+      <details>
+        <summary>Como recebo a história?</summary>
+        <p>Na hora, aqui mesmo na tela — em formato de livrinho digital para ler no celular ou tablet. Você também baixa o PDF para imprimir.</p>
+      </details>
+      <details>
+        <summary>E se meu filho não gostar?</summary>
+        <p>Devolvemos 100% do valor em até 7 dias. Mas prepare-se: o mais comum é ouvir "lê de novo!".</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<footer>
+  ☾ Historinha do Sono · Feito com carinho no Brasil · contato@historinhadosono.com.br
+</footer>
+
+<!-- ==================== QUIZ ==================== -->
+<div id="quiz" class="overlay" hidden>
+  <div class="star-layer a"></div>
+  <div class="quiz-head">
+    <button class="quiz-back" onclick="quizBack()">← voltar</button>
+    <div class="progress"><div class="bar" id="quizBar"></div></div>
+  </div>
+  <div class="quiz-body" id="quizBody"></div>
+</div>
+
+<!-- ==================== LOADING ==================== -->
+<div id="loading" class="overlay" hidden>
+  <div class="star-layer a"></div>
+  <div class="star-layer b"></div>
+  <div class="loading-stage">
+    <div class="loading-moon" aria-hidden="true"></div>
+    <div class="loading-msg" id="loadingMsg">Acordando a fada-escritora...</div>
+    <div class="loading-sub">Isso leva menos de um minutinho</div>
+  </div>
+</div>
+
+<!-- ==================== LIVRO ==================== -->
+<div id="book" class="overlay" hidden>
+  <div class="star-layer a"></div>
+  <div class="book-head">
+    <button class="btn-small" onclick="closeBook()">← início</button>
+    <div class="book-title" id="bookTitle"></div>
+    <button class="btn-small" id="printBtn" onclick="baixarPDF()" hidden>Baixar PDF 📖</button>
+  </div>
+  <div class="book-stage">
+    <div class="book-sheet" id="bookSheet"></div>
+    <div class="book-nav" id="bookNav">
+      <button class="nav-btn" id="prevBtn" onclick="turnPage(-1)" aria-label="Página anterior">‹</button>
+      <div class="page-dots" id="pageDots"></div>
+      <button class="nav-btn" id="nextBtn" onclick="turnPage(1)" aria-label="Próxima página">›</button>
+    </div>
+  </div>
+</div>
+
+<div class="print-book" id="printBook"></div>
+<script>
+/* =========================================================
+   CONFIGURAÇÃO DO LANÇAMENTO
+   1) Troque CHECKOUT_URL pelo seu link de pagamento
+      (Kirvano, Cakto, Hotmart, Stripe Payment Link...)
+   2) A geração por IA funciona nativamente dentro do
+      Claude.ai. Para publicar no Vercel, veja as instruções
+      que acompanham este arquivo (precisa de 1 função
+      serverless com sua chave da API).
+   ========================================================= */
+const CHECKOUT_URL = "https://SEU-LINK-DE-CHECKOUT-AQUI.com";
+const PRECO = "R$ 19,90";
+const PAGINAS_GRATIS = 3; // páginas liberadas antes do paywall
+
+/* ---------- estado ---------- */
+const state = {
+  nome: "", idade: "", genero: "", tema: "", licao: "",
+  detalhe: "", leitor: "",
+  avatar: {
+    skin: "#EDBD94", hair: "cacheado", hairColor: "#3A2A1A",
+    eyes: "#5B3A1E", glasses: "nao", pj: "#B8A7E8",
+    accessory: "nenhum", cheeks: "sim", expr: "feliz"
+  },
+  story: null, page: 0, unlocked: false, step: 0
+};
+const SKINS = ["#F9DFC6", "#F6D5B8", "#EDBD94", "#D69A6B", "#A96B42", "#7A4A2B", "#5A3620"];
+const HAIRS = [
+  { id: "curto", label: "Curto" }, { id: "franja", label: "Franjinha" },
+  { id: "cacheado", label: "Cacheado" }, { id: "crespo", label: "Crespo" },
+  { id: "longo", label: "Longo" }, { id: "rabo", label: "Rabo" },
+  { id: "trancas", label: "Tranças" }, { id: "coques", label: "Coquinhos" },
+  { id: "careca", label: "Careca" }
+];
+const HAIR_COLORS = ["#1C130B", "#3A2A1A", "#5B3A1E", "#8A5A2B", "#C98A3D", "#E6C36B", "#B5502A", "#9A9A9A"];
+const EYE_COLORS = ["#3A2A1A", "#5B3A1E", "#6B7A3D", "#3D6B7A", "#4A4A8A"];
+const PJ_COLORS = ["#B8A7E8", "#F5A3B7", "#8FD3C7", "#9BB8F0", "#F5C98E", "#C7E89B"];
+const ACCESSORIES = [
+  { id: "nenhum", label: "Nenhum" }, { id: "laco", label: "Laço 🎀" },
+  { id: "tiara", label: "Tiara 👑" }, { id: "estrela", label: "Estrelinha ⭐" }
+];
+
+/* ---------- hero: nome editável ---------- */
+const heroName = document.getElementById("heroName");
+const heroNameBtn = document.getElementById("heroNameBtn");
+heroName.addEventListener("input", () => {
+  const n = heroName.textContent.trim();
+  heroNameBtn.textContent = n || "seu filho";
+  state.nome = n;
+});
+heroName.addEventListener("focus", () => {
+  if (heroName.textContent.trim() === "Sofia" && !state.nome) {
+    document.getSelection().selectAllChildren(heroName);
+  }
+});
+heroName.addEventListener("keydown", e => {
+  if (e.key === "Enter") { e.preventDefault(); startQuiz(); }
+});
+
+/* ---------- quiz ---------- */
+const steps = [
+  {
+    key: "nome", q: "Qual é o nome da estrela da história?",
+    sub: "É esse nome que vai brilhar em todas as páginas",
+    type: "input", placeholder: "ex.: Sofia, Théo, Alice..."
+  },
+  {
+    key: "idade", q: nome => `Quantos anos ${nome} tem?`,
+    sub: "Para acertar o tamanho das frases e da aventura",
+    type: "options", opts: [
+      { v: "2 a 4 anos", e: "🍼" }, { v: "5 a 7 anos", e: "🎈" }, { v: "8 a 10 anos", e: "🚀" }
+    ]
+  },
+  {
+    key: "genero", q: "Como devemos falar do nosso herói?",
+    sub: "",
+    type: "options", opts: [
+      { v: "Menino", e: "👦" }, { v: "Menina", e: "👧" }, { v: "Neutro", e: "🌟" }
+    ]
+  },
+  {
+    key: "avatar", q: nome => `Monte ${nome} do seu jeitinho`,
+    sub: "É assim que a criança vai aparecer nas ilustrações — de pijama, pronta para dormir",
+    type: "avatar"
+  },
+  {
+    key: "tema", q: nome => `Qual mundo ${nome} ama?`,
+    sub: "A aventura vai acontecer bem no meio dele",
+    type: "options", opts: [
+      { v: "Dinossauros", e: "🦖" }, { v: "Princesas e castelos", e: "👑" },
+      { v: "Espaço e foguetes", e: "🚀" }, { v: "Fundo do mar", e: "🧜" },
+      { v: "Futebol", e: "⚽" }, { v: "Floresta e bichinhos", e: "🦊" },
+      { v: "Super-heróis", e: "🦸" }, { v: "Unicórnios", e: "🦄" }
+    ]
+  },
+  {
+    key: "licao", q: "Que sementinha você quer plantar?",
+    sub: "A lição entra na história de um jeito leve, sem sermão",
+    type: "options", opts: [
+      { v: "Coragem", e: "🦁" }, { v: "Dividir e cooperar", e: "🤝" },
+      { v: "Dormir na hora certa", e: "😴" }, { v: "Amizade", e: "💛" },
+      { v: "Acreditar em si", e: "✨" }, { v: "Paciência e calma", e: "🌊" }
+    ]
+  },
+  {
+    key: "detalhe", q: "Algum detalhe especial? (opcional)",
+    sub: "Um pet, o nome de um irmão, a cidade... a história fica ainda mais dele",
+    type: "input", placeholder: "ex.: tem um cachorro chamado Bob", optional: true
+  },
+  {
+    key: "leitor", q: "Quem vai ler a historinha hoje?",
+    sub: "A dedicatória da primeira página vem assinada",
+    type: "options", opts: [
+      { v: "Mamãe", e: "🤱" }, { v: "Papai", e: "🧔" },
+      { v: "Vovó", e: "👵" }, { v: "Vovô", e: "👴" }, { v: "Nós dois", e: "👨‍👩‍👧" }
+    ]
+  }
+];
+
+function startQuiz() {
+  state.step = state.nome ? 1 : 0;
+  show("quiz");
+  renderStep();
+}
+
+function renderStep() {
+  const s = steps[state.step];
+  const body = document.getElementById("quizBody");
+  document.getElementById("quizBar").style.width = ((state.step + 1) / steps.length * 100) + "%";
+  const q = typeof s.q === "function" ? s.q(state.nome || "a criança") : s.q;
+  let html = `<h2 class="quiz-q">${q}</h2><p class="quiz-sub">${s.sub || ""}</p>`;
+  if (s.type === "avatar") {
+    html += `<div class="avatar-stage">
+      <div class="avatar-preview big" id="avPrev">${avatarSVG(state.avatar)}</div>
+      <div class="av-tabs" id="avTabs">
+        <button class="av-tab ${avTab==='rosto'?'on':''}" onclick="setAvTab('rosto')">Rosto</button>
+        <button class="av-tab ${avTab==='cabelo'?'on':''}" onclick="setAvTab('cabelo')">Cabelo</button>
+        <button class="av-tab ${avTab==='estilo'?'on':''}" onclick="setAvTab('estilo')">Estilo</button>
+      </div>
+      <div class="av-panel" id="avPanel">${avatarPanel()}</div>
+      <button class="btn-primary" style="margin-top:6px" onclick="advance()">Ficou a cara! Continuar →</button>
+    </div>`;
+  } else if (s.type === "input") {
+    html += `<input class="quiz-input" id="quizInput" placeholder="${s.placeholder}"
+             value="${esc(state[s.key] || "")}" maxlength="60">
+             <button class="btn-primary quiz-next" onclick="submitInput()">${s.optional ? "Continuar →" : "Continuar →"}</button>`;
+    if (s.optional) html += `<button class="quiz-back quiz-next" style="margin-top:10px" onclick="skipInput()">Pular esta</button>`;
+  } else {
+    html += `<div class="opt-grid">` + s.opts.map(o =>
+      `<button class="opt ${state[s.key] === o.v ? "sel" : ""}" onclick="pick('${esc(o.v)}')">
+        <span class="big">${o.e}</span><span>${o.v}</span></button>`).join("") + `</div>`;
+  }
+  body.innerHTML = html;
+  const inp = document.getElementById("quizInput");
+  if (inp) {
+    inp.focus();
+    inp.addEventListener("keydown", e => { if (e.key === "Enter") submitInput(); });
+  }
+}
+
+function submitInput() {
+  const s = steps[state.step];
+  const v = document.getElementById("quizInput").value.trim();
+  if (!v && !s.optional) { document.getElementById("quizInput").style.borderColor = "#F5A3B7"; return; }
+  state[s.key] = v;
+  advance();
+}
+function skipInput() { state[steps[state.step].key] = ""; advance(); }
+function pick(v) {
+  state[steps[state.step].key] = v;
+  // ao escolher o gênero, ajusta o avatar inicial para combinar (a pessoa pode mudar depois)
+  if (steps[state.step].key === "genero") {
+    if (v === "Menino") {
+      state.avatar.hair = "curto"; state.avatar.pj = "#9BB8F0"; state.avatar.accessory = "nenhum";
+    } else if (v === "Menina") {
+      state.avatar.hair = "longo"; state.avatar.pj = "#F5A3B7"; state.avatar.accessory = "laco";
+    }
+  }
+  setTimeout(advance, 180);
+}
+
+let avTab = "rosto";
+function setAvTab(t) {
+  avTab = t;
+  document.querySelectorAll(".av-tab").forEach(b =>
+    b.classList.toggle("on", b.textContent.toLowerCase() === (t === "rosto" ? "rosto" : t === "cabelo" ? "cabelo" : "estilo")));
+  document.getElementById("avPanel").innerHTML = avatarPanel();
+}
+
+function swatchRow(label, key, colors) {
+  return `<div class="av-row"><span class="av-label">${label}</span>
+    ${colors.map(c => `<button class="swatch ${state.avatar[key] === c ? "sel" : ""}" style="background:${c}" onclick="setAv('${key}','${c}')" aria-label="${label}"></button>`).join("")}
+  </div>`;
+}
+function chipRow(label, key, opts) {
+  return `<div class="av-row"><span class="av-label">${label}</span>
+    ${opts.map(o => `<button class="hair-opt ${state.avatar[key] === o.id ? "sel" : ""}" onclick="setAv('${key}','${o.id}')">${o.label}</button>`).join("")}
+  </div>`;
+}
+
+function avatarPanel() {
+  if (avTab === "rosto") {
+    return swatchRow("Tom de pele", "skin", SKINS)
+      + swatchRow("Cor dos olhos", "eyes", EYE_COLORS)
+      + chipRow("Óculos", "glasses", [{ id: "nao", label: "Sem" }, { id: "sim", label: "Óculos 👓" }])
+      + chipRow("Bochechas rosadas", "cheeks", [{ id: "sim", label: "Sim" }, { id: "nao", label: "Não" }])
+      + chipRow("Expressão", "expr", [{ id: "feliz", label: "Sorriso 😊" }, { id: "timido", label: "Tímido 🙂" }, { id: "sardas", label: "Com sardas" }]);
+  }
+  if (avTab === "cabelo") {
+    return chipRow("Estilo", "hair", HAIRS)
+      + swatchRow("Cor do cabelo", "hairColor", HAIR_COLORS);
+  }
+  return swatchRow("Cor do pijama", "pj", PJ_COLORS)
+      + chipRow("Acessório", "accessory", ACCESSORIES);
+}
+
+function setAv(part, val) {
+  state.avatar[part] = val;
+  // atualiza só preview + painel (mais fluido que re-render do quiz todo)
+  const prev = document.getElementById("avPrev");
+  if (prev) prev.innerHTML = avatarSVG(state.avatar);
+  const panel = document.getElementById("avPanel");
+  if (panel) panel.innerHTML = avatarPanel();
+}
+
+/* ---------- ilustrações em SVG ---------- */
+function shade(hex, amt) {
+  // escurece um hex (amt negativo) ou clareia (positivo)
+  const n = parseInt(hex.slice(1), 16);
+  let r = (n >> 16) + amt, g = ((n >> 8) & 255) + amt, b = (n & 255) + amt;
+  r = Math.max(0, Math.min(255, r)); g = Math.max(0, Math.min(255, g)); b = Math.max(0, Math.min(255, b));
+  return "#" + (0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1);
+}
+
+function charSVG(av, closed, x, y, scale) {
+  const pj = av.pj || "#B8A7E8";
+  const pjDark = shade(pj, -30);
+  const hairC = av.hairColor || "#3A2A1A";
+  const skin = av.skin || "#EDBD94";
+  const eyeC = av.eyes || "#3A2A1A";
+
+  // ----- cabelo (atrás da cabeça) -----
+  let hairBack = "";
+  if (av.hair === "longo") {
+    hairBack = `<path d="M -36 -100 q -14 45 -6 78 l 84 0 q 8 -33 -6 -78 z" fill="${hairC}"/>`;
+  } else if (av.hair === "trancas") {
+    hairBack = `<rect x="-46" y="-96" width="13" height="66" rx="6.5" fill="${hairC}"/>
+                <rect x="33" y="-96" width="13" height="66" rx="6.5" fill="${hairC}"/>
+                <circle cx="-39.5" cy="-30" r="7" fill="${shade(hairC,20)}"/>
+                <circle cx="39.5" cy="-30" r="7" fill="${shade(hairC,20)}"/>`;
+  } else if (av.hair === "rabo") {
+    hairBack = `<path d="M 30 -100 q 34 6 30 46 q -2 22 -14 30 q 10 -30 -4 -50 q -8 -12 -12 -26 z" fill="${hairC}"/>`;
+  }
+
+  // ----- cabelo (topo/frente) -----
+  let hairTop = "";
+  if (av.hair === "careca") {
+    hairTop = "";
+  } else if (av.hair === "curto") {
+    hairTop = `<path d="M -35 -95 a 35 35 0 0 1 70 0 q -35 -20 -70 0 z" fill="${hairC}"/>`;
+  } else if (av.hair === "franja") {
+    hairTop = `<path d="M -35 -95 a 35 35 0 0 1 70 0 l 0 8 q -18 -14 -35 -2 q -17 -12 -35 2 z" fill="${hairC}"/>`;
+  } else if (av.hair === "cacheado") {
+    hairTop = `<path d="M -35 -95 a 35 35 0 0 1 70 0 z" fill="${hairC}"/>` +
+      [[-30,-102],[-17,-118],[0,-124],[17,-118],[30,-102]]
+        .map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="11" fill="${hairC}"/>`).join("");
+  } else if (av.hair === "crespo") {
+    let puff = "";
+    for (let a = -90; a <= 90; a += 22) {
+      const rad = a * Math.PI / 180;
+      puff += `<circle cx="${Math.sin(rad) * 40}" cy="${-98 - Math.cos(rad) * 14}" r="13" fill="${hairC}"/>`;
+    }
+    hairTop = `<circle cx="0" cy="-98" r="40" fill="${hairC}"/>` + puff;
+  } else if (av.hair === "longo") {
+    hairTop = `<path d="M -35 -95 a 35 35 0 0 1 70 0 z" fill="${hairC}"/>`;
+  } else if (av.hair === "rabo") {
+    hairTop = `<path d="M -35 -95 a 35 35 0 0 1 70 0 q -35 -14 -70 0 z" fill="${hairC}"/>`;
+  } else if (av.hair === "trancas") {
+    hairTop = `<path d="M -35 -95 a 35 35 0 0 1 70 0 l 0 6 q -35 -16 -70 0 z" fill="${hairC}"/>`;
+  } else if (av.hair === "coques") {
+    hairTop = `<path d="M -35 -95 a 35 35 0 0 1 70 0 z" fill="${hairC}"/>
+               <circle cx="-24" cy="-126" r="12" fill="${hairC}"/>
+               <circle cx="24" cy="-126" r="12" fill="${hairC}"/>`;
+  }
+
+  // ----- olhos -----
+  const eyes = closed
+    ? `<path d="M -18 -93 q 6 6 12 0" stroke="#3a2d20" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+       <path d="M 6 -93 q 6 6 12 0" stroke="#3a2d20" stroke-width="2.6" fill="none" stroke-linecap="round"/>`
+    : `<circle cx="-12" cy="-93" r="5" fill="#fff"/><circle cx="12" cy="-93" r="5" fill="#fff"/>
+       <circle cx="-12" cy="-93" r="3.6" fill="${eyeC}"/><circle cx="12" cy="-93" r="3.6" fill="${eyeC}"/>
+       <circle cx="-10.8" cy="-94.5" r="1.2" fill="#fff"/><circle cx="13.2" cy="-94.5" r="1.2" fill="#fff"/>`;
+
+  // ----- óculos -----
+  const glasses = av.glasses === "sim"
+    ? `<g stroke="#4a3a2a" stroke-width="2.4" fill="none">
+         <circle cx="-12" cy="-93" r="9"/><circle cx="12" cy="-93" r="9"/>
+         <path d="M -3 -93 h 6"/><path d="M -21 -95 l -8 -3"/><path d="M 21 -95 l 8 -3"/>
+       </g>` : "";
+
+  // ----- boca / expressão -----
+  const mouth = av.expr === "timido"
+    ? `<path d="M -6 -80 q 6 4 12 0" stroke="#3a2d20" stroke-width="2.6" fill="none" stroke-linecap="round"/>`
+    : `<path d="M -8 -80 q 8 7 16 0" stroke="#3a2d20" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+
+  // ----- bochechas / sardas -----
+  let cheeks = "";
+  if (av.cheeks === "sim" || av.expr === "sardas") {
+    cheeks = `<circle cx="-22" cy="-82" r="4.5" fill="#F5A3B7" opacity=".55"/>
+              <circle cx="22" cy="-82" r="4.5" fill="#F5A3B7" opacity=".55"/>`;
+  }
+  if (av.expr === "sardas") {
+    cheeks += [[-24,-86],[-19,-83],[-22,-79],[24,-86],[19,-83],[22,-79]]
+      .map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="1.1" fill="${shade(skin,-60)}" opacity=".6"/>`).join("");
+  }
+
+  // ----- acessório -----
+  let acc = "";
+  if (av.accessory === "laco") {
+    acc = `<g transform="translate(-24,-118)"><path d="M 0 0 l -10 -6 l 0 12 z" fill="#F5A3B7"/><path d="M 0 0 l 10 -6 l 0 12 z" fill="#F5A3B7"/><circle cx="0" cy="0" r="3.5" fill="#e8869e"/></g>`;
+  } else if (av.accessory === "tiara") {
+    acc = `<path d="M -22 -120 q 22 -16 44 0" stroke="#FFD98E" stroke-width="4" fill="none"/>
+           <circle cx="0" cy="-126" r="4" fill="#FFD98E"/><circle cx="-14" cy="-121" r="2.5" fill="#fff3d6"/><circle cx="14" cy="-121" r="2.5" fill="#fff3d6"/>`;
+  } else if (av.accessory === "estrela") {
+    acc = `<text x="22" y="-116" font-size="18">⭐</text>`;
+  }
+
+  const zzz = closed
+    ? `<text x="42" y="-124" font-size="17" fill="#FFD98E" font-family="Fraunces,serif" font-style="italic">z</text>
+       <text x="54" y="-138" font-size="13" fill="#FFD98E" font-family="Fraunces,serif" font-style="italic">z</text>`
+    : "";
+
+  return `<g transform="translate(${x},${y}) scale(${scale})">
+    <ellipse cx="0" cy="4" rx="40" ry="8" fill="rgba(0,0,0,.25)"/>
+    ${hairBack}
+    <ellipse cx="-14" cy="-2" rx="12" ry="7" fill="${pjDark}"/>
+    <ellipse cx="14" cy="-2" rx="12" ry="7" fill="${pjDark}"/>
+    <rect x="-32" y="-72" width="64" height="72" rx="26" fill="${pj}"/>
+    <circle cx="-10" cy="-45" r="3" fill="#fff" opacity=".6"/>
+    <circle cx="10" cy="-32" r="3" fill="#fff" opacity=".6"/>
+    <rect x="-48" y="-64" width="17" height="40" rx="8.5" fill="${pj}" transform="rotate(12 -40 -60)"/>
+    <rect x="31" y="-64" width="17" height="40" rx="8.5" fill="${pj}" transform="rotate(-12 40 -60)"/>
+    <circle cx="0" cy="-95" r="35" fill="${skin}"/>
+    ${hairTop}
+    ${eyes}
+    ${glasses}
+    ${mouth}
+    ${cheeks}
+    ${acc}
+    ${zzz}
+  </g>`;
+}
+
+function avatarSVG(av) {
+  return `<svg viewBox="-75 -175 150 190" xmlns="http://www.w3.org/2000/svg">${charSVG(av, false, 0, 0, 1)}</svg>`;
+}
+
+function segEmojis(str) {
+  try {
+    return [...new Intl.Segmenter("pt", { granularity: "grapheme" }).segment(str || "")]
+      .map(s => s.segment).filter(s => s.trim());
+  } catch (e) { return Array.from(str || "").filter(s => s.trim()); }
+}
+
+function sceneSVG(opts) {
+  const { seed = 0, emojis = "🌙⭐", avatar = state.avatar, closed = false, uid = "s" } = opts;
+  const gid = "sky_" + uid + seed;
+  const W = 560, H = 420;
+  let stars = "";
+  for (let i = 0; i < 20; i++) {
+    const sx = (i * 97 + seed * 53) % W;
+    const sy = (i * 61 + seed * 29) % 210 + 8;
+    const r = 1 + ((i + seed) % 3) * 0.7;
+    stars += `<circle cx="${sx}" cy="${sy}" r="${r}" fill="#FFF3D6" opacity="${0.5 + ((i + seed) % 4) * 0.12}"/>`;
+  }
+  const props = segEmojis(emojis).slice(0, 3);
+  const spots = [
+    [[78, 250, 56], [455, 205, 48], [340, 120, 40]],
+    [[470, 255, 58], [105, 165, 46], [310, 105, 38]],
+    [[95, 175, 50], [430, 135, 42], [485, 275, 56]]
+  ][seed % 3];
+  const propSvg = props.map((p, i) => {
+    const [px, py, ps] = spots[i] || spots[0];
+    return `<text x="${px}" y="${py}" font-size="${ps}" text-anchor="middle">${p}</text>`;
+  }).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustração da página">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#141334"/><stop offset=".6" stop-color="#232358"/><stop offset="1" stop-color="#3a3888"/>
+    </linearGradient></defs>
+    <rect width="${W}" height="${H}" fill="url(#${gid})"/>
+    ${stars}
+    <circle cx="490" cy="62" r="42" fill="#FFD98E" opacity=".14"/>
+    <circle cx="490" cy="62" r="27" fill="#FFD98E"/>
+    <circle cx="499" cy="55" r="22" fill="url(#${gid})" opacity=".85"/>
+    <ellipse cx="120" cy="470" rx="360" ry="130" fill="#2c2a6b"/>
+    <ellipse cx="480" cy="490" rx="360" ry="140" fill="#242260"/>
+    ${propSvg}
+    ${charSVG(avatar, closed, 280, 402, 1.18)}
+  </svg>`;
+}
+function advance() {
+  if (state.step < steps.length - 1) { state.step++; renderStep(); }
+  else generateStory();
+}
+function quizBack() {
+  if (state.step > 0) { state.step--; renderStep(); }
+  else show("landing");
+}
+
+/* ---------- geração da história ---------- */
+const loadingMsgs = [
+  "Acordando a fada-escritora... 🧚",
+  n => `Espalhando o nome de ${n} pelas páginas... ✨`,
+  "Escolhendo as estrelas do céu... 🌟",
+  "Deixando o final bem quentinho... 🌙",
+  "Quase pronto, prendendo a respiração... 💫"
+];
+let loadingTimer = null;
+
+async function generateStory() {
+  show("loading");
+  let i = 0;
+  const msgEl = document.getElementById("loadingMsg");
+  loadingTimer = setInterval(() => {
+    i = (i + 1) % loadingMsgs.length;
+    const m = loadingMsgs[i];
+    msgEl.textContent = typeof m === "function" ? m(state.nome) : m;
+  }, 2600);
+
+  try {
+    const response = await fetch("/api/gerar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nome: state.nome, idade: state.idade, genero: state.genero,
+        tema: state.tema, licao: state.licao, detalhe: state.detalhe, leitor: state.leitor
+      })
+    });
+    if (!response.ok) throw new Error("falha na geração");
+    const story = await response.json();
+    if (!story.pages || story.pages.length < 4) throw new Error("história incompleta");
+    state.story = story;
+    state.page = 0;
+    state.unlocked = false;
+    clearInterval(loadingTimer);
+    openBook();
+  } catch (err) {
+    clearInterval(loadingTimer);
+    console.error(err);
+    document.querySelector("#loading .loading-stage").innerHTML = `
+      <div class="error-card">
+        <h3>Ops, a fada cochilou 😴</h3>
+        <p>Não conseguimos criar a história agora. Verifique sua conexão e tente de novo — seus dados estão guardados.</p>
+        <button class="btn-primary" onclick="retryGen()">Tentar novamente</button>
+      </div>`;
+  }
+}
+function retryGen() {
+  document.querySelector("#loading .loading-stage").innerHTML = `
+    <div class="loading-moon" aria-hidden="true"></div>
+    <div class="loading-msg" id="loadingMsg">Acordando a fada-escritora...</div>
+    <div class="loading-sub">Isso leva menos de um minutinho</div>`;
+  generateStory();
+}
+
+/* ---------- livro ---------- */
+function openBook() {
+  document.getElementById("bookTitle").textContent = state.story.title;
+  show("book");
+  renderPage();
+  buildPrint();
+}
+function totalScreens() { return state.story.pages.length + 1; } // capa + páginas
+let turning = false;
+
+function pageHTML(p) {
+  const lockedFrom = PAGINAS_GRATIS + 1;
+  if (p === 0) {
+    return `<div class="page-cover-full">
+      <div class="cover-scene">${sceneSVG({ seed: 0, emojis: state.story.pages[0]?.emojis, closed: false, uid: "cv" })}</div>
+      <div class="cover-inner">
+        <div class="c-eyebrow">Historinha do Sono</div>
+        <h3>${esc(state.story.title)}</h3>
+        <div class="cover-rule"></div>
+        <p class="dedic">${esc(state.story.dedication)}</p>
+      </div>
+    </div>`;
+  }
+  if (!state.unlocked && p >= lockedFrom) {
+    return `<div style="flex:1;overflow-y:auto;display:flex;align-items:center;background:linear-gradient(160deg,var(--night),var(--night-soft))">
+      <div class="paywall" style="margin:auto;box-shadow:none;border-radius:0;max-width:none">
+        <span class="lock-emoji">🔒✨</span>
+        <h3>${esc(state.nome)} está no meio da aventura!</h3>
+        <p class="p-sub">Você leu o começo de graça. Desbloqueie a historinha completa e leia o final hoje à noite:</p>
+        <ul>
+          <li><span>✦</span><span>As ${state.story.pages.length} páginas completas, com o final feito para dar sono</span></li>
+          <li><span>✦</span><span>PDF ilustrado para imprimir e guardar de lembrança</span></li>
+          <li><span>✦</span><span>Garantia de 7 dias — não sorriu, devolvemos</span></li>
+        </ul>
+        <div class="price-line">${PRECO} <small>· pagamento único</small></div>
+        <button class="btn-primary" style="width:100%" onclick="goCheckout()">Desbloquear a historinha completa ✨</button>
+        <button class="demo-link" onclick="unlockDemo()">Já paguei / testar desbloqueio</button>
+      </div>
+    </div>`;
+  }
+  const pg = state.story.pages[p - 1];
+  const sleepy = p >= totalScreens() - 2;
+  return `<div class="page-illus">${sceneSVG({ seed: p, emojis: pg.emojis, closed: sleepy, uid: "pg" })}</div>
+    <div class="page-text">
+      <div class="page-num">Página ${p} de ${state.story.pages.length}</div>
+      <p>${esc(pg.text)}</p>
+    </div>`;
+}
+
+function renderPage(turnDir) {
+  const sheet = document.getElementById("bookSheet");
+  const p = state.page;
+  const total = totalScreens();
+  const lockedFrom = PAGINAS_GRATIS + 1;
+  const atPaywall = !state.unlocked && p >= lockedFrom;
+  const showHint = p === 0; // dica de toque só na capa
+
+  const card = document.createElement("div");
+  card.className = "page-card";
+  card.innerHTML = pageHTML(p) +
+    (atPaywall ? "" : `<div class="tap-zone left" onclick="turnPage(-1)"></div>
+     <div class="tap-zone right" onclick="turnPage(1)"></div>`) +
+    (showHint ? `<div class="tap-hint right">👆</div>` : "");
+
+  if (turnDir) {
+    // anima a folha atual saindo, depois troca
+    const old = sheet.querySelector(".page-card");
+    if (old) {
+      old.classList.add(turnDir > 0 ? "turning-fwd" : "turning-back");
+      old.addEventListener("animationend", () => {
+        sheet.innerHTML = "";
+        sheet.appendChild(card);
+      }, { once: true });
+      // insere a nova por baixo já
+      sheet.insertBefore(card, old);
+      card.style.zIndex = 1;
+      old.style.zIndex = 8;
+      setTimeout(() => { turning = false; }, 520);
+    } else {
+      sheet.innerHTML = ""; sheet.appendChild(card); turning = false;
+    }
+  } else {
+    sheet.innerHTML = "";
+    sheet.appendChild(card);
+    turning = false;
+  }
+
+  document.getElementById("prevBtn").disabled = p === 0;
+  document.getElementById("nextBtn").disabled = atPaywall || p === total - 1;
+  document.getElementById("pageDots").innerHTML = Array.from({ length: total }, (_, i) => {
+    const locked = !state.unlocked && i >= lockedFrom;
+    return `<div class="dot ${i === p ? "on" : ""} ${locked ? "lock" : ""}"></div>`;
+  }).join("");
+  document.getElementById("printBtn").hidden = !state.unlocked;
+}
+
+function turnPage(d) {
+  if (turning) return;
+  const total = totalScreens();
+  const lockedFrom = PAGINAS_GRATIS + 1;
+  let next = state.page + d;
+  if (next < 0 || next > total - 1) return;
+  if (!state.unlocked && next > lockedFrom) next = lockedFrom;
+  if (next === state.page) return;
+  const dir = next > state.page ? 1 : -1;
+  turning = true;
+  state.page = next;
+  renderPage(dir);
+}
+document.addEventListener("keydown", e => {
+  if (document.getElementById("book").hidden) return;
+  if (e.key === "ArrowRight") turnPage(1);
+  if (e.key === "ArrowLeft") turnPage(-1);
+});
+
+/* swipe no celular */
+(function () {
+  let x0 = null;
+  const b = document.getElementById("book");
+  b.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, { passive: true });
+  b.addEventListener("touchend", e => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 45) turnPage(dx < 0 ? 1 : -1);
+    x0 = null;
+  }, { passive: true });
+})();
+
+function goCheckout() { window.open(CHECKOUT_URL, "_blank"); }
+function unlockDemo() { state.unlocked = true; renderPage(); }
+function closeBook() { show("landing"); }
+
+/* ---------- PDF (impressão) ---------- */
+/* ---------- PDF de verdade (jsPDF) ---------- */
+function svgToDataURL(svgString, w, h) {
+  return new Promise((resolve, reject) => {
+    const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      const scale = 2; // resolução 2x para nitidez
+      const canvas = document.createElement("canvas");
+      canvas.width = w * scale; canvas.height = h * scale;
+      const ctx = canvas.getContext("2d");
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("svg render")); };
+    img.src = url;
+  });
+}
+
+async function baixarPDF() {
+  const btn = document.getElementById("printBtn");
+  const original = btn.textContent;
+  btn.textContent = "Gerando... ⏳";
+  btn.disabled = true;
+  try {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a5" });
+    const W = 148, H = 210; // A5 em mm
+    const total = state.story.pages.length;
+
+    // capa
+    let coverSVG = sceneSVG({ seed: 0, emojis: state.story.pages[0]?.emojis, closed: false, uid: "pdfcv" });
+    let img = await svgToDataURL(coverSVG.replace('viewBox="0 0 560 420"', 'width="560" height="420" viewBox="0 0 560 420"'), 560, 420);
+    pdf.addImage(img, "PNG", 0, 0, W, H * 0.62);
+    pdf.setFillColor(20, 19, 52);
+    pdf.rect(0, H * 0.62, W, H * 0.38, "F");
+    pdf.setTextColor(255, 217, 142);
+    pdf.setFont("times", "bold");
+    pdf.setFontSize(22);
+    pdf.text(state.story.title, W / 2, H * 0.62 + 20, { align: "center", maxWidth: W - 24 });
+    pdf.setTextColor(184, 167, 232);
+    pdf.setFont("times", "italic");
+    pdf.setFontSize(12);
+    pdf.text(state.story.dedication, W / 2, H * 0.62 + 44, { align: "center", maxWidth: W - 30 });
+
+    // páginas
+    for (let p = 0; p < total; p++) {
+      pdf.addPage();
+      const pg = state.story.pages[p];
+      const sleepy = p >= total - 2;
+      let s = sceneSVG({ seed: p + 1, emojis: pg.emojis, closed: sleepy, uid: "pdf" + p });
+      s = s.replace('viewBox="0 0 560 420"', 'width="560" height="420" viewBox="0 0 560 420"');
+      const im = await svgToDataURL(s, 560, 420);
+      pdf.addImage(im, "PNG", 0, 0, W, H * 0.6);
+      pdf.setFillColor(255, 249, 239);
+      pdf.rect(0, H * 0.6, W, H * 0.4, "F");
+      pdf.setTextColor(184, 167, 232);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(8);
+      pdf.text(`PÁGINA ${p + 1}`, 14, H * 0.6 + 14);
+      pdf.setTextColor(56, 50, 92);
+      pdf.setFont("times", "normal");
+      pdf.setFontSize(13);
+      pdf.text(pg.text, 14, H * 0.6 + 26, { maxWidth: W - 28, lineHeightFactor: 1.5 });
+    }
+
+    const nome = (state.nome || "historinha").replace(/[^a-zA-Z0-9]/g, "");
+    pdf.save(`Historinha-${nome}.pdf`);
+    btn.textContent = original;
+    btn.disabled = false;
+  } catch (err) {
+    console.error(err);
+    btn.textContent = original;
+    btn.disabled = false;
+    alert("Não consegui gerar o PDF agora. Tente novamente em instantes.");
+  }
+}
+
+function buildPrint() {
+  const pb = document.getElementById("printBook");
+  const total = state.story.pages.length;
+  pb.innerHTML = `<div class="print-page">
+      <div class="pn">Historinha do Sono</div>
+      <h2>${esc(state.story.title)}</h2>
+      <p style="font-style:italic">${esc(state.story.dedication)}</p>
+      <div class="pi">${sceneSVG({ seed: 0, emojis: state.story.pages[0]?.emojis, closed: false, uid: "prcv" })}</div>
+    </div>` +
+    state.story.pages.map((pg, i) => `<div class="print-page">
+      <div class="pn">Página ${i + 1}</div>
+      <div class="pi">${sceneSVG({ seed: i + 1, emojis: pg.emojis, closed: i >= total - 2, uid: "pr" + i })}</div>
+      <p>${esc(pg.text)}</p>
+    </div>`).join("");
+}
+
+/* amostra ilustrada da landing page */
+document.getElementById("sampleIllus").innerHTML = sceneSVG({
+  seed: 2, emojis: "🦖🌋⭐",
+  avatar: { skin: "#D69A6B", hair: "crespo", hairColor: "#241A12", eyes: "#3A2A1A", glasses: "nao", pj: "#8FD3C7", accessory: "nenhum", cheeks: "sim", expr: "feliz" },
+  closed: false, uid: "lp"
+});
+
+/* ---------- utilitários ---------- */
+function show(id) {
+  ["landing", "quiz", "loading", "book"].forEach(x =>
+    document.getElementById(x).hidden = (x !== id));
+  window.scrollTo(0, 0);
+}
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+</script>
+</body>
+</html>
