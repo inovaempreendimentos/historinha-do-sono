@@ -24,6 +24,16 @@ export default async function handler(req, res) {
                     genero === "Menino" ? "ele" :
                     "linguagem neutra (evite pronomes de gênero)";
 
+    // ajusta o tamanho da história pela idade (sem perguntar nada a mais pra mãe)
+    let paginas = 8, palavras = "35 a 55", estiloIdade = "linguagem clara e envolvente";
+    if (idade && idade.includes("0-4")) {
+      paginas = 5; palavras = "20 a 35";
+      estiloIdade = "frases bem curtas, muita repetição rítmica, palavras simples";
+    } else if (idade && idade.includes("8-10")) {
+      paginas = 9; palavras = "45 a 65";
+      estiloIdade = "mais camadas na aventura, algum humor, vocabulário um pouco mais rico";
+    }
+
     const prompt = `Você é uma autora premiada de literatura infantil brasileira. Escreva uma história de ninar em português do Brasil.
 
 DADOS:
@@ -36,9 +46,9 @@ DADOS:
 - Quem vai ler: ${leitor || "quem ama a criança"}
 
 REGRAS:
-- Exatamente 8 páginas. Cada página com 35 a 55 palavras.
-- O nome ${nome} deve aparecer em pelo menos 6 páginas.
-- Linguagem adequada à idade: para 2-4 anos frases curtas e repetição; para 8-10 aventura com mais camadas.
+- Exatamente ${paginas} páginas. Cada página com ${palavras} palavras.
+- O nome ${nome} deve aparecer em pelo menos ${Math.max(4, paginas - 2)} páginas.
+- Linguagem adequada à idade: ${estiloIdade}.
 - A lição aparece pelas AÇÕES do personagem, nunca como moral explícita.
 - As 2 últimas páginas desaceleram: tom calmo, bocejos, olhinhos pesados; a última termina com ${nome} dormindo e um "boa noite".
 - Para cada página, escolha 2 ou 3 emojis que ilustrem a cena.
