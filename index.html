@@ -317,10 +317,10 @@ footer{background:var(--night-deep);text-align:center;padding:40px 24px;font-siz
 .cinema-stage{flex:1;display:flex;flex-direction:column;position:relative;overflow:hidden}
 .cinema-scene{flex:1;min-height:0;position:relative}
 .cinema-scene svg{width:100%;height:100%;object-fit:cover;display:block}
-.cinema-scene .ken{animation:kenburns 9s ease-in-out infinite alternate;width:100%;height:100%}
-@keyframes kenburns{from{transform:scale(1.02)}to{transform:scale(1.12)}}
-.cinema-text-wrap{position:absolute;left:0;right:0;bottom:0;padding:34px 26px 46px;background:linear-gradient(to top,rgba(10,9,32,.96) 40%,rgba(10,9,32,.6) 75%,transparent)}
-.cinema-text{font-family:'Fraunces',serif;font-weight:500;font-size:clamp(1.15rem,4.5vw,1.5rem);line-height:1.6;color:var(--paper);max-width:620px;margin:0 auto;text-align:center;opacity:0;transform:translateY(14px)}
+.cinema-scene .ken{animation:kenburns 11s ease-in-out infinite alternate;width:100%;height:100%;transform-origin:center 65%}
+@keyframes kenburns{from{transform:scale(1) translateY(0)}to{transform:scale(1.14) translateY(-2%)}}
+.cinema-text-wrap{position:absolute;left:0;right:0;bottom:0;padding:34px 26px 52px;background:linear-gradient(to top,rgba(10,9,32,.97) 35%,rgba(10,9,32,.55) 75%,transparent)}
+.cinema-text{font-family:'Fraunces',serif;font-weight:500;font-size:clamp(1.15rem,4.5vw,1.5rem);line-height:1.65;color:var(--paper);max-width:620px;margin:0 auto;text-align:center;opacity:0;transform:translateY(14px)}
 .cinema-text.show{animation:cinemaIn 1s ease forwards}
 @keyframes cinemaIn{to{opacity:1;transform:translateY(0)}}
 .cinema-progress{position:absolute;top:0;left:0;right:0;height:4px;display:flex;gap:4px;padding:10px 14px 0;z-index:3}
@@ -334,6 +334,19 @@ footer{background:var(--night-deep);text-align:center;padding:40px 24px;font-siz
 .cinema-ctrl:hover{border-color:var(--moon)}
 .cinema-paused .cinema-progress .seg.active .fill{animation-play-state:paused}
 .cinema-paused .cinema-scene .ken{animation-play-state:paused}
+.cinema-page-badge{position:absolute;top:18px;left:16px;z-index:5;font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--moon);background:rgba(10,9,32,.45);border:1px solid rgba(255,217,142,.28);padding:7px 12px;border-radius:999px;backdrop-filter:blur(4px)}
+.cinema-music-label{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:.72rem;color:rgba(255,249,239,.55);font-weight:700;z-index:4;pointer-events:none}
+.cinema-prep{position:absolute;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(10,9,32,.92);backdrop-filter:blur(8px)}
+.cinema-prep[hidden]{display:none !important}
+.cinema-prep-box{width:100%;max-width:380px;text-align:center}
+.cinema-prep-box h3{font-family:'Fraunces',serif;font-size:1.45rem;color:var(--moon);margin-bottom:8px}
+.cinema-prep-box p{color:var(--lilac);font-size:.92rem;margin-bottom:18px;font-weight:600}
+.cinema-music-grid{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
+.cinema-music-opt{display:flex;align-items:center;gap:12px;text-align:left;width:100%;padding:12px 14px;border-radius:14px;border:1.5px solid rgba(255,249,239,.18);background:rgba(255,249,239,.05);color:var(--paper);font-family:inherit;cursor:pointer}
+.cinema-music-opt.sel{border-color:var(--moon);background:rgba(255,217,142,.12)}
+.cinema-music-opt .em{font-size:1.35rem}
+.cinema-music-opt .tt{font-weight:800;font-size:.95rem}
+.cinema-music-opt .dd{font-size:.75rem;color:var(--lilac);font-weight:600;margin-top:2px}
 
 /* ===== login / conta / oferta ===== */
 .acc-overlay{position:fixed;inset:0;z-index:80;background:rgba(10,9,32,.82);backdrop-filter:blur(6px);display:flex;align-items:flex-start;justify-content:center;padding:32px 20px;overflow-y:auto}
@@ -621,14 +634,26 @@ footer{background:var(--night-deep);text-align:center;padding:40px 24px;font-siz
 <div id="cinema" class="overlay cinema-overlay" hidden>
   <div class="cinema-stage" id="cinemaStage">
     <div class="cinema-scene" id="cinemaScene"></div>
+    <div class="cinema-page-badge" id="cinemaPageBadge">Página 1</div>
     <div class="cinema-text-wrap">
       <p class="cinema-text" id="cinemaText"></p>
     </div>
+    <div class="cinema-music-label" id="cinemaMusicLabel"></div>
     <div class="cinema-progress" id="cinemaProgress"></div>
   </div>
   <div class="cinema-controls">
+    <button class="cinema-ctrl" id="cinemaMusicBtn" onclick="abrirPrepCinema(true)" aria-label="Música">🎵</button>
     <button class="cinema-ctrl" id="cinemaPause" onclick="cinemaToggle()" aria-label="Pausar">⏸</button>
     <button class="cinema-ctrl" onclick="stopCinema()" aria-label="Fechar cineminha">✕</button>
+  </div>
+  <div class="cinema-prep" id="cinemaPrep" hidden>
+    <div class="cinema-prep-box">
+      <h3>Como quer ouvir?</h3>
+      <p>Escolha a musiquinha de fundo — a voz conta a história por cima</p>
+      <div class="cinema-music-grid" id="cinemaMusicGrid"></div>
+      <button class="btn-primary" style="width:100%" onclick="confirmarPrepCinema()">▶ Começar Cineminha</button>
+      <button class="book-share" style="margin-top:10px" onclick="fecharPrepCinema()">Cancelar</button>
+    </div>
   </div>
 </div>
 
@@ -1092,84 +1117,171 @@ function segEmojis(str) {
   } catch (e) { return Array.from(str || "").filter(s => s.trim()); }
 }
 
+/* cenário da página: lê o texto + tema + emojis e escolhe a paisagem */
+function detectarCenario(texto, tema, emojis) {
+  const t = ((texto || "") + " " + (tema || "") + " " + (emojis || "")).toLowerCase();
+  const tem = (...xs) => xs.some(x => t.includes(x));
+  if (tem("dorm", "sono", "cama", "travesseiro", "quarto", "bocej", "pijama", "boa noite", "🛏️", "😴")) return "quarto";
+  if (tem("mar", "oceano", "praia", "onda", "peixe", "concha", "barco", "sereia", "mergulh", "🌊", "🐚", "🐟", "🧜")) return "mar";
+  if (tem("floresta", "árvore", "arvore", "bosque", "folha", "raposa", "coelho", "urso", "🌲", "🦊", "🐰", "🐻")) return "floresta";
+  if (tem("castelo", "princesa", "príncipe", "principe", "rei", "rainha", "torre", "coroa", "🏰", "👑")) return "castelo";
+  if (tem("espaço", "espaco", "foguete", "planeta", "astronauta", "galáxia", "galaxia", "🚀", "🪐", "👽")) return "espaco";
+  if (tem("dino", "vulcão", "vulcao", "pré-hist", "pre-hist", "🦖", "🦕", "🌋")) return "vulcao";
+  if (tem("montanha", "colina", "vale", "neve", "🗻", "⛰️")) return "montanhas";
+  if (tem("jardim", "flor", "borboleta", "arco-íris", "arcoiris", "unicórnio", "unicornio", "🌈", "🌸", "🦋", "🦄")) return "jardim";
+  if (tem("nuvem", "céu", "ceu", "voar", "passarinho", "pássaro", "passaro", "☁️", "🐦")) return "nuvens";
+  if (tem("futebol", "bola", "campo", "⚽")) return "campo";
+  if (tem("herói", "heroi", "capa", "poder", "🦸")) return "cidade";
+  // fallback pelo tema do quiz
+  const temaL = (tema || "").toLowerCase();
+  if (temaL.includes("mar")) return "mar";
+  if (temaL.includes("floresta")) return "floresta";
+  if (temaL.includes("castelo") || temaL.includes("princesa")) return "castelo";
+  if (temaL.includes("espaço") || temaL.includes("espaco") || temaL.includes("foguete")) return "espaco";
+  if (temaL.includes("dino")) return "vulcao";
+  if (temaL.includes("unicórnio") || temaL.includes("unicornio")) return "jardim";
+  if (temaL.includes("futebol")) return "campo";
+  if (temaL.includes("herói") || temaL.includes("heroi")) return "cidade";
+  return null;
+}
+
 function sceneSVG(opts) {
-  const { seed = 0, emojis = "🌙⭐", avatar = state.avatar, closed = false, uid = "s" } = opts;
+  const {
+    seed = 0, emojis = "🌙⭐", avatar = state.avatar, closed = false, uid = "s",
+    texto = "", tema = state.tema || ""
+  } = opts;
   const gid = "sky_" + uid + seed;
   const W = 560, H = 420;
-  const rnd = (n) => { // pseudo-aleatório estável por seed
+  const rnd = (n) => {
     const x = Math.sin((seed + 1) * 9301 + n * 49297) * 233280;
     return x - Math.floor(x);
   };
 
-  // estrelas
+  const cenario = detectarCenario(texto, tema, emojis) || ["colinas", "floresta", "montanhas", "mar", "nuvens"][seed % 5];
+
+  const skyMap = {
+    quarto: ["#0e0d28", "#1a1840", "#2a2460"],
+    mar: ["#0c1a2e", "#143552", "#1e5a78"],
+    floresta: ["#0e1a18", "#1a3228", "#2a4838"],
+    castelo: ["#14122e", "#2a1e48", "#4a2e68"],
+    espaco: ["#080818", "#12122e", "#1e1e48"],
+    vulcao: ["#1a1010", "#3a1a18", "#5a2a20"],
+    montanhas: ["#101828", "#1c2848", "#2c3a68"],
+    jardim: ["#141828", "#243848", "#3a5068"],
+    nuvens: ["#161233", "#2b2358", "#463888"],
+    campo: ["#121c28", "#1e3040", "#2e4850"],
+    cidade: ["#10101e", "#1c1c38", "#2e2e58"],
+    colinas: ["#141334", "#232358", "#3a3888"]
+  };
+  const sky = skyMap[cenario] || skyMap.colinas;
+
   let stars = "";
-  for (let i = 0; i < 20; i++) {
+  const nStars = cenario === "espaco" ? 36 : cenario === "quarto" ? 12 : 20;
+  for (let i = 0; i < nStars; i++) {
     const sx = (i * 97 + seed * 53) % W;
-    const sy = (i * 61 + seed * 29) % 210 + 8;
+    const sy = (i * 61 + seed * 29) % (cenario === "espaco" ? 360 : 210) + 8;
     const r = 1 + ((i + seed) % 3) * 0.7;
-    stars += `<circle cx="${sx}" cy="${sy}" r="${r}" fill="#FFF3D6" opacity="${0.5 + ((i + seed) % 4) * 0.12}"/>`;
+    stars += `<circle cx="${sx}" cy="${sy}" r="${r}" fill="#FFF3D6" opacity="${0.45 + ((i + seed) % 4) * 0.12}"/>`;
   }
 
-  // paleta do gradiente do céu varia levemente por página (dá sensação de horas/lugares diferentes)
-  const skies = [
-    ["#141334", "#232358", "#3a3888"],
-    ["#12142e", "#1f2b52", "#31517a"],
-    ["#1a1236", "#342156", "#5b3a7a"],
-    ["#101a34", "#1c3352", "#2c5a7a"],
-    ["#161233", "#2b2358", "#463888"]
-  ];
-  const sky = skies[seed % skies.length];
-
-  // CENÁRIO por página: escolhe um tipo de paisagem que varia
-  const scenery = seed % 5;
   let ground = "";
-  if (scenery === 0) {
-    // colinas suaves
-    ground = `<ellipse cx="120" cy="470" rx="360" ry="130" fill="#2c2a6b"/>
-              <ellipse cx="480" cy="490" rx="360" ry="140" fill="#242260"/>`;
-  } else if (scenery === 1) {
-    // floresta (árvores atrás)
+  if (cenario === "quarto") {
+    ground = `<rect x="0" y="260" width="${W}" height="160" fill="#2a2448"/>
+              <rect x="40" y="300" width="200" height="90" rx="8" fill="#3a3460"/>
+              <rect x="55" y="285" width="170" height="28" rx="10" fill="#4a4478"/>
+              <circle cx="420" cy="120" r="28" fill="#FFD98E" opacity=".25"/>
+              <rect x="400" y="200" width="14" height="60" fill="#5a4a30"/>
+              <ellipse cx="407" cy="195" rx="22" ry="10" fill="#FFD98E" opacity=".55"/>`;
+  } else if (cenario === "mar") {
+    ground = `<ellipse cx="280" cy="470" rx="420" ry="120" fill="#1c3a5c"/>
+              <ellipse cx="280" cy="380" rx="300" ry="24" fill="#2c5a7a" opacity=".5"/>
+              <path d="M80 390 q40 -10 80 0 t80 0 t80 0 t80 0 t80 0" stroke="#6a9abc" stroke-width="2.5" fill="none" opacity=".45"/>
+              <path d="M60 415 q40 -8 80 0 t80 0 t80 0 t80 0 t80 0" stroke="#4a7a9c" stroke-width="2" fill="none" opacity=".35"/>
+              <ellipse cx="120" cy="360" rx="18" ry="8" fill="#3a6a88" opacity=".5"/>`;
+  } else if (cenario === "floresta") {
     let trees = "";
-    for (let i = 0; i < 5; i++) {
-      const tx = 40 + i * 120 + rnd(i) * 30;
-      const th = 60 + rnd(i + 10) * 30;
-      trees += `<polygon points="${tx},${330} ${tx - 26},${330 + th} ${tx + 26},${330 + th}" fill="#1e3a2e" opacity=".85"/>
-                <polygon points="${tx},${350} ${tx - 30},${360 + th} ${tx + 30},${360 + th}" fill="#24473a" opacity=".9"/>`;
+    for (let i = 0; i < 6; i++) {
+      const tx = 30 + i * 95 + rnd(i) * 25;
+      const th = 55 + rnd(i + 10) * 35;
+      trees += `<rect x="${tx - 4}" y="${330 + th * 0.55}" width="8" height="${40}" fill="#3a2a18"/>
+                <polygon points="${tx},${310} ${tx - 28},${330 + th} ${tx + 28},${330 + th}" fill="#1e3a2e" opacity=".9"/>
+                <polygon points="${tx},${330} ${tx - 34},${355 + th} ${tx + 34},${355 + th}" fill="#24473a"/>`;
     }
     ground = trees + `<ellipse cx="280" cy="480" rx="420" ry="130" fill="#243a2e"/>`;
-  } else if (scenery === 2) {
-    // montanhas
+  } else if (cenario === "castelo") {
+    ground = `<rect x="180" y="200" width="200" height="160" fill="#3a2e58"/>
+              <rect x="160" y="160" width="50" height="200" fill="#2e2448"/>
+              <rect x="350" y="160" width="50" height="200" fill="#2e2448"/>
+              <polygon points="160,160 185,120 210,160" fill="#4a3a68"/>
+              <polygon points="350,160 375,120 400,160" fill="#4a3a68"/>
+              <rect x="255" y="250" width="50" height="70" fill="#1a1430"/>
+              <rect x="200" y="220" width="28" height="28" fill="#FFD98E" opacity=".35"/>
+              <rect x="332" y="220" width="28" height="28" fill="#FFD98E" opacity=".35"/>
+              <ellipse cx="280" cy="470" rx="400" ry="120" fill="#242254"/>`;
+  } else if (cenario === "espaco") {
+    ground = `<ellipse cx="100" cy="360" rx="50" ry="50" fill="#4a3a78" opacity=".7"/>
+              <ellipse cx="480" cy="300" rx="35" ry="35" fill="#3a5a88" opacity=".6"/>
+              <ellipse cx="300" cy="500" rx="280" ry="90" fill="#1a1a40" opacity=".8"/>
+              <circle cx="200" cy="140" r="3" fill="#fff" opacity=".9"/>
+              <circle cx="400" cy="80" r="2" fill="#FFD98E"/>`;
+  } else if (cenario === "vulcao") {
+    ground = `<polygon points="180,380 280,160 380,380" fill="#4a2820"/>
+              <polygon points="240,220 280,160 320,220" fill="#c86a3a" opacity=".7"/>
+              <ellipse cx="280" cy="470" rx="400" ry="120" fill="#2a1a18"/>
+              <circle cx="260" cy="140" r="8" fill="#FF8A5A" opacity=".5"/>
+              <circle cx="300" cy="120" r="6" fill="#FFB080" opacity=".4"/>`;
+  } else if (cenario === "montanhas") {
     ground = `<polygon points="0,340 140,180 280,340" fill="#2a2a5c" opacity=".8"/>
               <polygon points="200,340 360,200 520,340" fill="#22224e" opacity=".85"/>
               <polygon points="380,340 500,220 620,340" fill="#2c2c60" opacity=".8"/>
               <ellipse cx="280" cy="470" rx="400" ry="120" fill="#242254"/>`;
-  } else if (scenery === 3) {
-    // água / mar (reflexo)
-    ground = `<ellipse cx="280" cy="470" rx="420" ry="120" fill="#1c3a5c"/>
-              <ellipse cx="280" cy="380" rx="300" ry="24" fill="#2c5a7a" opacity=".5"/>
-              <path d="M120 400 q40 -8 80 0 t80 0 t80 0 t80 0" stroke="#4a7a9c" stroke-width="2" fill="none" opacity=".4"/>
-              <path d="M100 420 q40 -8 80 0 t80 0 t80 0 t80 0" stroke="#4a7a9c" stroke-width="2" fill="none" opacity=".3"/>`;
-  } else {
-    // campo aberto com nuvens
+  } else if (cenario === "jardim") {
+    let flowers = "";
+    for (let i = 0; i < 5; i++) {
+      const fx = 60 + i * 100 + rnd(i) * 20;
+      flowers += `<line x1="${fx}" y1="380" x2="${fx}" y2="340" stroke="#3a6a48" stroke-width="3"/>
+                  <circle cx="${fx}" cy="330" r="12" fill="#F5A3B7" opacity=".7"/>
+                  <circle cx="${fx}" cy="330" r="5" fill="#FFD98E"/>`;
+    }
+    ground = flowers + `<ellipse cx="200" cy="475" rx="380" ry="125" fill="#2a4a38"/>
+                        <ellipse cx="450" cy="490" rx="320" ry="130" fill="#243e32"/>
+                        <path d="M80 160 q60 -40 120 0" stroke="#B8A7E8" stroke-width="8" fill="none" opacity=".4"/>
+                        <path d="M100 160 q40 -20 80 0" stroke="#F5A3B7" stroke-width="6" fill="none" opacity=".35"/>`;
+  } else if (cenario === "campo") {
+    ground = `<ellipse cx="280" cy="460" rx="420" ry="140" fill="#2a4838"/>
+              <ellipse cx="280" cy="400" rx="80" ry="20" fill="#3a5a48" opacity=".5"/>
+              <circle cx="280" cy="360" r="18" fill="#F5F5F5" opacity=".85"/>`;
+  } else if (cenario === "cidade") {
+    let buildings = "";
+    for (let i = 0; i < 5; i++) {
+      const bx = 40 + i * 110;
+      const bh = 80 + rnd(i) * 80;
+      buildings += `<rect x="${bx}" y="${360 - bh}" width="70" height="${bh}" fill="#2a2a48"/>
+                    <rect x="${bx + 12}" y="${380 - bh}" width="14" height="14" fill="#FFD98E" opacity=".4"/>
+                    <rect x="${bx + 40}" y="${400 - bh}" width="14" height="14" fill="#FFD98E" opacity=".3"/>`;
+    }
+    ground = buildings + `<ellipse cx="280" cy="480" rx="420" ry="100" fill="#1a1a30"/>`;
+  } else if (cenario === "nuvens") {
     let clouds = "";
-    for (let i = 0; i < 2; i++) {
-      const cx = 80 + i * 300 + rnd(i) * 60;
-      const cy = 90 + rnd(i + 5) * 60;
-      clouds += `<ellipse cx="${cx}" cy="${cy}" rx="42" ry="18" fill="#3a3a70" opacity=".4"/>
-                 <ellipse cx="${cx + 30}" cy="${cy + 4}" rx="34" ry="15" fill="#3a3a70" opacity=".35"/>`;
+    for (let i = 0; i < 3; i++) {
+      const cx = 70 + i * 180 + rnd(i) * 40;
+      const cy = 80 + rnd(i + 5) * 50;
+      clouds += `<ellipse cx="${cx}" cy="${cy}" rx="48" ry="20" fill="#4a4a78" opacity=".45"/>
+                 <ellipse cx="${cx + 32}" cy="${cy + 4}" rx="36" ry="16" fill="#4a4a78" opacity=".4"/>`;
     }
     ground = clouds + `<ellipse cx="200" cy="475" rx="380" ry="125" fill="#2c2a6b"/>
                        <ellipse cx="450" cy="490" rx="320" ry="130" fill="#262358"/>`;
+  } else {
+    ground = `<ellipse cx="120" cy="470" rx="360" ry="130" fill="#2c2a6b"/>
+              <ellipse cx="480" cy="490" rx="360" ry="140" fill="#242260"/>`;
   }
 
-  // lua muda de posição/fase por página
   const moonX = seed % 2 === 0 ? 490 : 80;
   const moonY = 50 + (seed % 3) * 14;
-  const moon = `<circle cx="${moonX}" cy="${moonY}" r="42" fill="#FFD98E" opacity=".14"/>
+  const moon = cenario === "espaco" ? "" : `<circle cx="${moonX}" cy="${moonY}" r="42" fill="#FFD98E" opacity=".14"/>
                 <circle cx="${moonX}" cy="${moonY}" r="27" fill="#FFD98E"/>
                 <circle cx="${moonX + 9}" cy="${moonY - 7}" r="22" fill="${sky[0]}" opacity=".85"/>`;
 
-  // elementos do tema (emojis) espalhados
   const props = segEmojis(emojis).slice(0, 3);
   const spots = [
     [[78, 250, 54], [455, 205, 46], [340, 120, 38]],
@@ -1516,6 +1628,15 @@ function renderDash(historias) {
         <button class="voz-btn ${vozSalva() === k ? "sel" : ""}" onclick="escolherVoz('${k}')">
           ${VOZES[k].titulo}
           <small>${VOZES[k].desc}</small>
+        </button>`).join("")}
+    </div>
+    <h3 class="dash-sec">Musiquinha do Cineminha</h3>
+    <p class="dash-sub-sec">A mãe escolhe o clima — a voz fica por cima, bem baixinho</p>
+    <div class="dash-vozes">
+      ${MUSICAS.map(m => `
+        <button class="voz-btn ${musicaSalva() === m.id ? "sel" : ""}" onclick="escolherMusica('${m.id}')">
+          ${m.emoji} ${m.titulo}
+          <small>${m.desc}</small>
         </button>`).join("")}
     </div>`;
 
@@ -1880,10 +2001,49 @@ function pausarRetomar() {
   }
 }
 
-/* ---- trilha ambiente suave gerada por código (caixinha de música) ---- */
-let trilhaCtx = null, trilhaGain = null, trilhaTimer = null, trilhaAcordeTimer = null;
-/* converte base64 em Blob URL — mais confiável que data:URI direto,
-   especialmente no Safari/iOS, que às vezes falha silenciosamente com data:URI de áudio */
+/* ---- musiquinhas de ninar (Web Audio — sem arquivo externo) ---- */
+const MUSICAS = [
+  { id: "caixinha", emoji: "🎶", titulo: "Caixinha de música", desc: "notas doces e lentas" },
+  { id: "chuva", emoji: "🌧️", titulo: "Chuva leve", desc: "barulhinho branco pra relaxar" },
+  { id: "piano", emoji: "🎹", titulo: "Piano de ninar", desc: "melodia bem suave" },
+  { id: "oceano", emoji: "🌊", titulo: "Ondas do mar", desc: "respiração do oceano" },
+  { id: "silencio", emoji: "🤫", titulo: "Só a voz", desc: "sem música de fundo" }
+];
+let trilhaCtx = null, trilhaGain = null, trilhaNodes = [], trilhaTimers = [];
+
+function musicaSalva() {
+  try {
+    const id = localStorage.getItem("hds_musica");
+    if (MUSICAS.some(m => m.id === id)) return id;
+  } catch (e) {}
+  return "caixinha";
+}
+function escolherMusica(id) {
+  if (!MUSICAS.some(m => m.id === id)) return;
+  try { localStorage.setItem("hds_musica", id); } catch (e) {}
+  montarGridMusica();
+  const dash = document.getElementById("dashBody");
+  if (dash) {
+    dash.querySelectorAll(".voz-btn").forEach(b => {
+      const oc = b.getAttribute("onclick") || "";
+      if (oc.includes("escolherMusica")) b.classList.toggle("sel", oc.includes("'" + id + "'"));
+    });
+  }
+}
+function nomeMusica(id) {
+  return (MUSICAS.find(m => m.id === id) || MUSICAS[0]).titulo;
+}
+function montarGridMusica() {
+  const grid = document.getElementById("cinemaMusicGrid");
+  if (!grid) return;
+  const sel = musicaSalva();
+  grid.innerHTML = MUSICAS.map(m => `
+    <button type="button" class="cinema-music-opt ${m.id === sel ? "sel" : ""}" onclick="escolherMusica('${m.id}')">
+      <span class="em">${m.emoji}</span>
+      <span><div class="tt">${m.titulo}</div><div class="dd">${m.desc}</div></span>
+    </button>`).join("");
+}
+
 function base64ParaAudioURL(base64) {
   const bin = atob(base64);
   const bytes = new Uint8Array(bin.length);
@@ -1892,74 +2052,161 @@ function base64ParaAudioURL(base64) {
   return URL.createObjectURL(blob);
 }
 
+function limparTrilhaTimers() {
+  trilhaTimers.forEach(t => clearInterval(t));
+  trilhaTimers = [];
+  trilhaNodes.forEach(n => {
+    try { n.stop(); } catch (e) {}
+    try { n.disconnect(); } catch (e) {}
+  });
+  trilhaNodes = [];
+}
+
+function criarRuidoBuffer(ctx, segundos) {
+  const len = Math.floor(ctx.sampleRate * segundos);
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+  return buf;
+}
+
 function iniciarTrilhaSuave() {
+  iniciarMusicaFundo(musicaSalva());
+}
+
+function iniciarMusicaFundo(tipo) {
   try {
-    if (trilhaCtx && trilhaCtx.state !== "closed") {
-      if (trilhaCtx.state === "suspended") trilhaCtx.resume();
+    pararTrilhaSuave(false);
+    if (!tipo || tipo === "silencio") {
+      atualizarLabelMusica();
       return;
     }
     trilhaCtx = new (window.AudioContext || window.webkitAudioContext)();
     trilhaGain = trilhaCtx.createGain();
-    trilhaGain.gain.value = 0.045;
-    const filtro = trilhaCtx.createBiquadFilter();
-    filtro.type = "lowpass";
-    filtro.frequency.value = 720;
-    trilhaGain.connect(filtro);
-    filtro.connect(trilhaCtx.destination);
+    trilhaGain.gain.value = 0;
+    const master = trilhaCtx.createGain();
+    master.gain.value = 1;
+    trilhaGain.connect(master);
+    master.connect(trilhaCtx.destination);
+    // fade-in bem suave pra não assustar
+    trilhaGain.gain.linearRampToValueAtTime(tipo === "chuva" || tipo === "oceano" ? 0.07 : 0.05, trilhaCtx.currentTime + 1.8);
 
-    const acordes = [
-      [130.81, 164.81, 196.00],
-      [146.83, 174.61, 220.00],
-      [123.47, 146.83, 196.00],
-      [110.00, 164.81, 220.00]
-    ];
-    let acordeAtivo = [];
-    let acordeIdx = 0;
-    const trocarAcorde = () => {
-      if (!trilhaCtx) return;
-      acordeAtivo.forEach(({ osc, g }) => {
-        try {
-          g.gain.cancelScheduledValues(trilhaCtx.currentTime);
-          g.gain.setValueAtTime(g.gain.value, trilhaCtx.currentTime);
-          g.gain.linearRampToValueAtTime(0, trilhaCtx.currentTime + 4);
-          osc.stop(trilhaCtx.currentTime + 4.2);
-        } catch (e) {}
-      });
-      const freqs = acordes[acordeIdx % acordes.length];
-      acordeIdx++;
-      acordeAtivo = freqs.map(f => {
-        const osc = trilhaCtx.createOscillator();
-        const g = trilhaCtx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = f;
-        g.gain.setValueAtTime(0, trilhaCtx.currentTime);
-        g.gain.linearRampToValueAtTime(0.42, trilhaCtx.currentTime + 4);
-        osc.connect(g); g.connect(trilhaGain);
-        osc.start();
-        return { osc, g };
-      });
-    };
-    trocarAcorde();
-    trilhaAcordeTimer = setInterval(trocarAcorde, 12000);
+    if (tipo === "caixinha") trilhaCaixinha();
+    else if (tipo === "chuva") trilhaChuva();
+    else if (tipo === "piano") trilhaPiano();
+    else if (tipo === "oceano") trilhaOceano();
 
-    const notas = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25];
-    const tocarNota = () => {
-      if (!trilhaCtx) return;
-      const osc = trilhaCtx.createOscillator();
-      const g = trilhaCtx.createGain();
-      osc.type = "triangle";
-      osc.frequency.value = notas[Math.floor(Math.random() * notas.length)];
-      g.gain.setValueAtTime(0, trilhaCtx.currentTime);
-      g.gain.linearRampToValueAtTime(0.22, trilhaCtx.currentTime + 0.2);
-      g.gain.exponentialRampToValueAtTime(0.001, trilhaCtx.currentTime + 3.6);
-      osc.connect(g); g.connect(trilhaGain);
-      osc.start();
-      osc.stop(trilhaCtx.currentTime + 3.8);
-    };
-    tocarNota();
-    trilhaTimer = setInterval(tocarNota, 3800);
+    atualizarLabelMusica();
   } catch (e) { console.warn("trilha indisponível", e); }
 }
+
+function trilhaCaixinha() {
+  const filtro = trilhaCtx.createBiquadFilter();
+  filtro.type = "lowpass";
+  filtro.frequency.value = 900;
+  // reconnect com filtro (mantém o fade no trilhaGain)
+  try { trilhaGain.disconnect(); } catch (e) {}
+  trilhaGain.connect(filtro);
+  filtro.connect(trilhaCtx.destination);
+
+  // pentatônica bem lenta (estilo caixinha)
+  const melodia = [261.63, 293.66, 329.63, 392.00, 440.00, 392.00, 329.63, 293.66];
+  let i = 0;
+  const tocar = () => {
+    if (!trilhaCtx) return;
+    const osc = trilhaCtx.createOscillator();
+    const g = trilhaCtx.createGain();
+    osc.type = "triangle";
+    osc.frequency.value = melodia[i % melodia.length];
+    i++;
+    g.gain.setValueAtTime(0, trilhaCtx.currentTime);
+    g.gain.linearRampToValueAtTime(0.35, trilhaCtx.currentTime + 0.15);
+    g.gain.exponentialRampToValueAtTime(0.001, trilhaCtx.currentTime + 2.8);
+    osc.connect(g); g.connect(trilhaGain);
+    osc.start();
+    osc.stop(trilhaCtx.currentTime + 3);
+    trilhaNodes.push(osc);
+  };
+  tocar();
+  trilhaTimers.push(setInterval(tocar, 2200));
+}
+
+function trilhaPiano() {
+  // berceuse simples em loop
+  const notas = [
+    196.00, 233.08, 261.63, 233.08,
+    196.00, 174.61, 196.00, 233.08,
+    261.63, 293.66, 261.63, 233.08,
+    196.00, 174.61, 146.83, 174.61
+  ];
+  let i = 0;
+  const tocar = () => {
+    if (!trilhaCtx) return;
+    const f = notas[i % notas.length];
+    i++;
+    [1, 2].forEach((harm, h) => {
+      const osc = trilhaCtx.createOscillator();
+      const g = trilhaCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = f * harm;
+      const vol = h === 0 ? 0.28 : 0.08;
+      g.gain.setValueAtTime(0, trilhaCtx.currentTime);
+      g.gain.linearRampToValueAtTime(vol, trilhaCtx.currentTime + 0.4);
+      g.gain.exponentialRampToValueAtTime(0.001, trilhaCtx.currentTime + 3.2);
+      osc.connect(g); g.connect(trilhaGain);
+      osc.start();
+      osc.stop(trilhaCtx.currentTime + 3.4);
+      trilhaNodes.push(osc);
+    });
+  };
+  tocar();
+  trilhaTimers.push(setInterval(tocar, 1600));
+}
+
+function trilhaChuva() {
+  const src = trilhaCtx.createBufferSource();
+  src.buffer = criarRuidoBuffer(trilhaCtx, 3);
+  src.loop = true;
+  const bp = trilhaCtx.createBiquadFilter();
+  bp.type = "bandpass";
+  bp.frequency.value = 1100;
+  bp.Q.value = 0.6;
+  const hp = trilhaCtx.createBiquadFilter();
+  hp.type = "highpass";
+  hp.frequency.value = 400;
+  src.connect(hp); hp.connect(bp); bp.connect(trilhaGain);
+  src.start();
+  trilhaNodes.push(src);
+}
+
+function trilhaOceano() {
+  const src = trilhaCtx.createBufferSource();
+  src.buffer = criarRuidoBuffer(trilhaCtx, 4);
+  src.loop = true;
+  const lp = trilhaCtx.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = 380;
+  const lfo = trilhaCtx.createOscillator();
+  const lfoGain = trilhaCtx.createGain();
+  lfo.frequency.value = 0.08;
+  lfoGain.gain.value = 0.035;
+  const waveGain = trilhaCtx.createGain();
+  waveGain.gain.value = 0.045;
+  lfo.connect(lfoGain);
+  lfoGain.connect(waveGain.gain);
+  src.connect(lp); lp.connect(waveGain); waveGain.connect(trilhaGain);
+  src.start();
+  lfo.start();
+  trilhaNodes.push(src, lfo);
+}
+
+function atualizarLabelMusica() {
+  const el = document.getElementById("cinemaMusicLabel");
+  if (!el) return;
+  const id = musicaSalva();
+  el.textContent = id === "silencio" ? "" : "♪ " + nomeMusica(id);
+}
+
 function pausarTrilhaSuave() {
   try { if (trilhaCtx && trilhaCtx.state === "running") trilhaCtx.suspend(); } catch (e) {}
 }
@@ -1967,18 +2214,23 @@ function retomarTrilhaSuave() {
   try { if (trilhaCtx && trilhaCtx.state === "suspended") trilhaCtx.resume(); } catch (e) {}
 }
 function pararTrilhaSuave(fade) {
-  if (trilhaTimer) { clearInterval(trilhaTimer); trilhaTimer = null; }
-  if (trilhaAcordeTimer) { clearInterval(trilhaAcordeTimer); trilhaAcordeTimer = null; }
+  limparTrilhaTimers();
   if (trilhaCtx) {
     try {
       if (fade && trilhaGain) {
-        trilhaGain.gain.exponentialRampToValueAtTime(0.001, trilhaCtx.currentTime + 2);
-        setTimeout(() => { if (trilhaCtx) { trilhaCtx.close(); trilhaCtx = null; } }, 2200);
+        trilhaGain.gain.cancelScheduledValues(trilhaCtx.currentTime);
+        trilhaGain.gain.setValueAtTime(Math.max(0.001, trilhaGain.gain.value), trilhaCtx.currentTime);
+        trilhaGain.gain.exponentialRampToValueAtTime(0.001, trilhaCtx.currentTime + 1.6);
+        const ctx = trilhaCtx;
+        setTimeout(() => { try { ctx.close(); } catch (e) {} if (trilhaCtx === ctx) trilhaCtx = null; }, 1800);
+        trilhaCtx = null;
       } else {
-        trilhaCtx.close(); trilhaCtx = null;
+        trilhaCtx.close();
+        trilhaCtx = null;
       }
     } catch (e) { trilhaCtx = null; }
   }
+  trilhaGain = null;
 }
 
 async function abrirHistoriaSalva(id) {
@@ -2465,7 +2717,7 @@ function atualizarBarraCineminha() {
   if (bar) bar.hidden = !noLivro;
   if (!noLivro) return;
   if (state.cinemaPronto) {
-    if (msg) msg.textContent = "Cineminha pronto — assista com narração ✨";
+    if (msg) msg.textContent = "Cineminha pronto — escolha a musiquinha e assista ✨";
     if (btnBar) { btnBar.textContent = "▶ Cineminha"; btnBar.disabled = false; }
     if (btnHead) { btnHead.hidden = false; btnHead.disabled = false; }
   } else {
@@ -2494,7 +2746,7 @@ function pageHTML(p) {
   const paywallIdx = indicePaywall();
   if (p === 0) {
     return `<div class="page-cover-full">
-      <div class="cover-scene">${sceneSVG({ seed: 0, emojis: state.story.pages[0]?.emojis, closed: false, uid: "cv" })}</div>
+      <div class="cover-scene">${sceneSVG({ seed: 0, emojis: state.story.pages[0]?.emojis, closed: false, uid: "cv", texto: textoPagina(state.story.pages[0]), tema: state.tema })}</div>
       <div class="cover-inner">
         <div class="c-eyebrow">Historinha do Sono</div>
         <h3>${esc(state.story.title)}</h3>
@@ -2540,7 +2792,7 @@ function pageHTML(p) {
     </div>`;
   }
   const sleepy = p >= totalScreens() - 2;
-  return `<div class="page-illus">${sceneSVG({ seed: p, emojis: pg.emojis, closed: sleepy, uid: "pg" })}</div>
+  return `<div class="page-illus">${sceneSVG({ seed: p, emojis: pg.emojis, closed: sleepy, uid: "pg", texto: textoPagina(pg), tema: state.tema })}</div>
     <div class="page-text">
       <div class="page-num">Página ${p} de ${state.story.pages.length}</div>
       <p>${esc(textoPagina(pg))}</p>
@@ -2694,15 +2946,57 @@ function svgToDataURL(svgString, w, h) {
 }
 
 /* ---------- MODO CINEMINHA ---------- */
-let cinemaState = { idx: 0, timer: null, paused: false, playing: false };
+let cinemaState = { idx: 0, timer: null, paused: false, playing: false, soTrocarMusica: false };
 
 function startCinema() {
   if (!state.story) return;
   if (!state.cinemaPronto) return;
-  cinemaState = { idx: 0, timer: null, paused: false, playing: true };
+  abrirPrepCinema(false);
+}
+
+function abrirPrepCinema(soMusica) {
+  cinemaState.soTrocarMusica = !!soMusica;
+  const overlay = document.getElementById("cinema");
+  overlay.hidden = false;
+  montarGridMusica();
+  const prep = document.getElementById("cinemaPrep");
+  prep.hidden = false;
+  const btn = prep.querySelector(".btn-primary");
+  if (btn) btn.textContent = soMusica ? "Aplicar música" : "▶ Começar Cineminha";
+  const h3 = prep.querySelector("h3");
+  if (h3) h3.textContent = soMusica ? "Trocar musiquinha" : "Como quer ouvir?";
+  // fundo da tela de escolha já com a 1ª cena (vende a experiência)
+  if (!soMusica && state.story?.pages?.[0]) {
+    const pg0 = state.story.pages[0];
+    document.getElementById("cinemaScene").innerHTML =
+      `<div class="ken">${sceneSVG({ seed: 1, emojis: pg0.emojis, closed: false, uid: "prep", texto: textoPagina(pg0), tema: state.tema })}</div>`;
+    document.getElementById("cinemaText").textContent = "";
+    const badge = document.getElementById("cinemaPageBadge");
+    if (badge) badge.textContent = "Cineminha";
+  }
+}
+
+function fecharPrepCinema() {
+  const prep = document.getElementById("cinemaPrep");
+  if (prep) prep.hidden = true;
+  if (!cinemaState.playing) document.getElementById("cinema").hidden = true;
+}
+
+function confirmarPrepCinema() {
+  document.getElementById("cinemaPrep").hidden = true;
+  if (cinemaState.soTrocarMusica && cinemaState.playing) {
+    iniciarMusicaFundo(musicaSalva());
+    return;
+  }
+  iniciarCinemaDeVerdade();
+}
+
+function iniciarCinemaDeVerdade() {
+  cinemaState = { idx: 0, timer: null, paused: false, playing: true, soTrocarMusica: false };
   const overlay = document.getElementById("cinema");
   overlay.hidden = false;
   overlay.classList.remove("cinema-paused");
+  document.getElementById("cinemaPrep").hidden = true;
   document.getElementById("cinemaPause").textContent = "⏸";
   const limite = cinemaLimite();
   document.getElementById("cinemaProgress").innerHTML =
@@ -2710,7 +3004,7 @@ function startCinema() {
   if (narracaoAudio) { try { narracaoAudio.pause(); } catch (e) {} }
   narracaoAudio = new Audio();
   narracaoAudio.play().catch(() => {});
-  iniciarTrilhaSuave();
+  iniciarMusicaFundo(musicaSalva());
   cinemaShow(0);
 }
 
@@ -2731,12 +3025,16 @@ function cinemaShow(i) {
   const total = state.story.pages.length;
   const sleepy = i >= total - 2;
   const scene = document.getElementById("cinemaScene");
-  scene.innerHTML = `<div class="ken">${sceneSVG({ seed: i + 1, emojis: pg.emojis, closed: sleepy, uid: "cin" + i })}</div>`;
+  const txtPagina = textoPagina(pg);
+  scene.innerHTML = `<div class="ken">${sceneSVG({ seed: i + 1, emojis: pg.emojis, closed: sleepy, uid: "cin" + i, texto: txtPagina, tema: state.tema })}</div>`;
+
+  const badge = document.getElementById("cinemaPageBadge");
+  if (badge) badge.textContent = `Página ${i + 1} de ${limite}`;
 
   const txt = document.getElementById("cinemaText");
   txt.classList.remove("show");
   void txt.offsetWidth;
-  txt.textContent = textoPagina(pg);
+  txt.textContent = txtPagina;
   txt.classList.add("show");
 
   const audioB64 = state.cinemaAudios[i];
@@ -2775,7 +3073,7 @@ function cinemaShow(i) {
     });
     marcarProgresso(8);
   } else {
-    const palavras = textoPagina(pg).split(/\s+/).length;
+    const palavras = txtPagina.split(/\s+/).length;
     const dur = Math.max(6, Math.min(12, palavras * 0.55));
     marcarProgresso(dur);
     if (!cinemaState.paused) {
@@ -2815,6 +3113,8 @@ function cinemaEnd() {
   void txt.offsetWidth;
   txt.textContent = "Boa noite 🌙";
   txt.classList.add("show");
+  const badge = document.getElementById("cinemaPageBadge");
+  if (badge) badge.textContent = "Fim";
   const segs = document.querySelectorAll("#cinemaProgress .seg");
   segs.forEach(s => { s.classList.remove("active"); s.classList.add("done"); });
   cinemaState.timer = setTimeout(stopCinema, 4000);
@@ -2823,8 +3123,11 @@ function cinemaEnd() {
 function stopCinema() {
   clearTimeout(cinemaState.timer);
   cinemaState.playing = false;
+  cinemaState.soTrocarMusica = false;
   if (narracaoAudio) { try { narracaoAudio.pause(); } catch (e) {} narracaoAudio = null; }
   pararTrilhaSuave(false);
+  const prep = document.getElementById("cinemaPrep");
+  if (prep) prep.hidden = true;
   document.getElementById("cinema").hidden = true;
 }
 

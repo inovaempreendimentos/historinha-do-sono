@@ -51,7 +51,7 @@ REGRAS:
 - Linguagem adequada à idade: ${estiloIdade}.
 - A lição aparece pelas AÇÕES do personagem, nunca como moral explícita.
 - As 2 últimas páginas desaceleram: tom calmo, bocejos, olhinhos pesados; a última termina com ${nome} dormindo e um "boa noite".
-- Para cada página, escolha 2 ou 3 emojis que ilustrem a cena.
+- Para cada página, escolha 2 ou 3 emojis que ilustrem EXATAMENTE o que acontece naquela página (lugar + ação). Ex.: mar→🌊🐚, floresta→🌲🦊, quarto/sono→🛏️🌙, castelo→🏰👑, espaço→🚀🌟.
 - Crie um título encantador curto e uma dedicatória de 1 frase assinada por "${leitor || "quem ama a criança"}".
 
 RESPONDA APENAS com JSON válido, sem markdown, sem crases, neste formato exato:
