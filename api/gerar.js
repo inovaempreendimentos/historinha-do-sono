@@ -67,7 +67,7 @@ RESPONDA APENAS com JSON válido, sem markdown, sem crases, neste formato exato:
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.9,
-        max_tokens: 1200,
+        max_tokens: 4000,
         response_format: { type: "json_object" }
       })
     });
@@ -84,10 +84,18 @@ RESPONDA APENAS com JSON válido, sem markdown, sem crases, neste formato exato:
     try {
       story = JSON.parse(content);
     } catch (e) {
-      // fallback: tenta extrair o JSON de dentro do texto
       const s = content.indexOf("{"), en = content.lastIndexOf("}");
       story = JSON.parse(content.substring(s, en + 1));
     }
+
+    story.pages = (story.pages || []).map(p => {
+      if (typeof p === "string") return { text: p.trim(), emojis: "🌙⭐✨" };
+      const text = String(p.text || p.texto || p.content || "").trim();
+      const emojis = p.emojis || p.emoji || "🌙⭐✨";
+      return { text, emojis };
+    }).filter(p => p.text);
+
+    if (story.pages.length > paginas) story.pages = story.pages.slice(0, paginas);
 
     if (!story.pages || story.pages.length < 4) {
       return res.status(502).json({ error: "História incompleta. Tente de novo." });

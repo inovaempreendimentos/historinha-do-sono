@@ -263,7 +263,19 @@ footer{background:var(--night-deep);text-align:center;padding:40px 24px;font-siz
 @keyframes tapPulse{0%,100%{opacity:0;transform:translateX(0)}50%{opacity:.55;transform:translateX(4px)}}
 
 .book-narr-bar{max-width:420px;width:100%;margin:0 auto 10px;padding:10px 14px;border-radius:14px;background:rgba(255,217,142,.1);border:1px solid rgba(255,217,142,.28);display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.82rem;color:var(--paper);font-weight:600}
-.book-narr-bar .btn-small{flex:0 0 auto;padding:7px 12px;font-size:.75rem}
+.book-narr-bar .btn-small{
+  flex:0 0 auto;padding:8px 14px;font-size:.8rem;
+  background:linear-gradient(180deg,#ffe3a8,var(--moon));color:#4a3a12;border:none;
+  box-shadow:0 4px 14px rgba(255,217,142,.35);
+}
+.book-narr-bar .btn-small:disabled{opacity:.55;cursor:wait}
+.paywall .oferta-mini{display:flex;flex-direction:column;gap:10px;margin:18px 0;text-align:left}
+.paywall .oferta-mini button{width:100%}
+.paywall .oferta-mini .mini-tag{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#c99127;margin-bottom:4px}
+.paywall .btn-small{
+  background:#fff6e0;color:#4a3a12;border:1.5px solid #e2c56a;
+}
+.paywall .btn-small:hover{background:#ffe9b0;border-color:#c99127}
 .paywall .oferta-mini{display:flex;flex-direction:column;gap:10px;margin:18px 0;text-align:left}
 .paywall .oferta-mini button{width:100%}
 .paywall .oferta-mini .mini-tag{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#c99127;margin-bottom:4px}
@@ -582,13 +594,12 @@ footer{background:var(--night-deep);text-align:center;padding:40px 24px;font-siz
   <div class="book-head">
     <button class="btn-small" onclick="closeBook()">← início</button>
     <div class="book-title" id="bookTitle"></div>
-    <button class="btn-small" id="narrarLivroBtn" onclick="ouvirNarracaoLivro()" hidden>🎧 Ouvir</button>
     <button class="btn-small cinema-btn" id="cinemaBtn" onclick="startCinema()" hidden>▶ Cineminha</button>
     <button class="btn-small" id="printBtn" onclick="baixarPDF()" hidden>Baixar PDF 📖</button>
   </div>
   <div class="book-narr-bar" id="bookNarrBar" hidden>
-    <span id="bookNarrMsg">Preparando a narração...</span>
-    <button class="btn-small" id="bookNarrPlay" onclick="ouvirNarracaoLivro()">▶ Ouvir até aqui</button>
+    <span id="bookNarrMsg">Preparando o Cineminha...</span>
+    <button class="btn-small" id="bookNarrPlay" onclick="startCinema()" disabled>▶ Cineminha</button>
   </div>
 
   <div class="book-stage">
@@ -715,7 +726,7 @@ const state = {
     accessory: "nenhum", cheeks: "sim", expr: "feliz"
   },
   story: null, page: 0, unlocked: false, step: 0,
-  previewAudioBase64: null, previewAudioPronto: false
+  cinemaAudios: [], cinemaPronto: false
 };
 const SKINS = ["#F9DFC6", "#F6D5B8", "#EDBD94", "#D69A6B", "#A96B42", "#7A4A2B", "#5A3620"];
 const HAIRS = [
@@ -1309,7 +1320,7 @@ async function checarSessaoInicial() {
       atualizarBotaoConta();
       show("book");
       openBook();
-      prepararNarracaoMetade();
+      prepararAudiosCinema();
     }
   }
   atualizarBotaoConta();
@@ -1831,20 +1842,24 @@ function base64ParaAudioURL(base64) {
 
 function iniciarTrilhaSuave() {
   try {
+    if (trilhaCtx && trilhaCtx.state !== "closed") {
+      if (trilhaCtx.state === "suspended") trilhaCtx.resume();
+      return;
+    }
     trilhaCtx = new (window.AudioContext || window.webkitAudioContext)();
     trilhaGain = trilhaCtx.createGain();
-    trilhaGain.gain.value = 0.09; // um pouco mais presente que antes, ainda de fundo
+    trilhaGain.gain.value = 0.045;
     const filtro = trilhaCtx.createBiquadFilter();
     filtro.type = "lowpass";
-    filtro.frequency.value = 1000; // tira o brilho áspero, deixa mais aveludado
+    filtro.frequency.value = 720;
     trilhaGain.connect(filtro);
     filtro.connect(trilhaCtx.destination);
 
-    // ---- colchão contínuo (pad): dois acordes suaves alternando bem devagar
-    // (Lá menor -> Fá maior, com notas em comum — transição macia, clima emotivo) ----
     const acordes = [
-      [110.00, 130.81, 164.81], // Lá menor grave (A2 C3 E3)
-      [87.31, 110.00, 130.81]   // Fá maior grave (F2 A2 C3)
+      [130.81, 164.81, 196.00],
+      [146.83, 174.61, 220.00],
+      [123.47, 146.83, 196.00],
+      [110.00, 164.81, 220.00]
     ];
     let acordeAtivo = [];
     let acordeIdx = 0;
@@ -1854,8 +1869,8 @@ function iniciarTrilhaSuave() {
         try {
           g.gain.cancelScheduledValues(trilhaCtx.currentTime);
           g.gain.setValueAtTime(g.gain.value, trilhaCtx.currentTime);
-          g.gain.linearRampToValueAtTime(0, trilhaCtx.currentTime + 3);
-          osc.stop(trilhaCtx.currentTime + 3.1);
+          g.gain.linearRampToValueAtTime(0, trilhaCtx.currentTime + 4);
+          osc.stop(trilhaCtx.currentTime + 4.2);
         } catch (e) {}
       });
       const freqs = acordes[acordeIdx % acordes.length];
@@ -1866,33 +1881,38 @@ function iniciarTrilhaSuave() {
         osc.type = "sine";
         osc.frequency.value = f;
         g.gain.setValueAtTime(0, trilhaCtx.currentTime);
-        g.gain.linearRampToValueAtTime(0.5, trilhaCtx.currentTime + 3); // entrada bem lenta
+        g.gain.linearRampToValueAtTime(0.42, trilhaCtx.currentTime + 4);
         osc.connect(g); g.connect(trilhaGain);
         osc.start();
         return { osc, g };
       });
     };
     trocarAcorde();
-    trilhaAcordeTimer = setInterval(trocarAcorde, 9000);
+    trilhaAcordeTimer = setInterval(trocarAcorde, 12000);
 
-    // ---- melodia esparsa por cima (a mesma ideia de antes, um pouco mais suave) ----
-    const notas = [523.25, 587.33, 659.25, 783.99, 880.00]; // C5 D5 E5 G5 A5
+    const notas = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25];
     const tocarNota = () => {
       if (!trilhaCtx) return;
       const osc = trilhaCtx.createOscillator();
       const g = trilhaCtx.createGain();
-      osc.type = "sine";
+      osc.type = "triangle";
       osc.frequency.value = notas[Math.floor(Math.random() * notas.length)];
       g.gain.setValueAtTime(0, trilhaCtx.currentTime);
-      g.gain.linearRampToValueAtTime(0.35, trilhaCtx.currentTime + 0.15);
-      g.gain.exponentialRampToValueAtTime(0.001, trilhaCtx.currentTime + 2.8);
+      g.gain.linearRampToValueAtTime(0.22, trilhaCtx.currentTime + 0.2);
+      g.gain.exponentialRampToValueAtTime(0.001, trilhaCtx.currentTime + 3.6);
       osc.connect(g); g.connect(trilhaGain);
       osc.start();
-      osc.stop(trilhaCtx.currentTime + 2.9);
+      osc.stop(trilhaCtx.currentTime + 3.8);
     };
     tocarNota();
-    trilhaTimer = setInterval(tocarNota, 2600);
+    trilhaTimer = setInterval(tocarNota, 3800);
   } catch (e) { console.warn("trilha indisponível", e); }
+}
+function pausarTrilhaSuave() {
+  try { if (trilhaCtx && trilhaCtx.state === "running") trilhaCtx.suspend(); } catch (e) {}
+}
+function retomarTrilhaSuave() {
+  try { if (trilhaCtx && trilhaCtx.state === "suspended") trilhaCtx.resume(); } catch (e) {}
 }
 function pararTrilhaSuave(fade) {
   if (trilhaTimer) { clearInterval(trilhaTimer); trilhaTimer = null; }
@@ -2170,12 +2190,11 @@ async function desbloquearHistoriaAtual() {
   state.unlocked = true;
   try { localStorage.removeItem("hds_preview"); } catch (e) {}
   renderPage();
-  atualizarBarraNarracaoLivro();
+  state.cinemaAudios = [];
+  state.cinemaPronto = false;
+  atualizarBarraCineminha();
   document.getElementById("printBtn").hidden = false;
-  document.getElementById("cinemaBtn").hidden = false;
-  if (state.usuario && state_ultimaHistoriaId) {
-    abrirPlayer(state_ultimaHistoriaId, true);
-  }
+  prepararAudiosCinema();
   return true;
 }
 
@@ -2242,7 +2261,7 @@ async function aplicarCupom() {
     if (!ok && !state.usuario) {
       state.unlocked = true;
       renderPage();
-      atualizarBarraNarracaoLivro();
+      atualizarBarraCineminha();
       document.getElementById("printBtn").hidden = false;
       document.getElementById("cinemaBtn").hidden = false;
       if (msg) msg.textContent = "Liberado! Gerando narração completa...";
@@ -2292,6 +2311,10 @@ async function generateStory() {
     if (!response.ok) throw new Error("falha na geração");
     const story = await response.json();
     if (!story.pages || story.pages.length < 4) throw new Error("história incompleta");
+    story.pages = story.pages.map(p => {
+      if (typeof p === "string") return { text: p, emojis: "🌙⭐✨" };
+      return { text: (p.text || p.texto || p.content || "").trim(), emojis: p.emojis || "🌙⭐✨" };
+    }).filter(p => p.text);
 
     state.story = story;
     state.page = 0;
@@ -2306,11 +2329,11 @@ async function generateStory() {
       marcarPreviewGratisUsado();
     }
 
-    state.previewAudioBase64 = null;
-    state.previewAudioPronto = false;
+    state.cinemaAudios = [];
+    state.cinemaPronto = false;
     clearInterval(loadingTimer);
     openBook();
-    prepararNarracaoMetade();
+    prepararAudiosCinema();
   } catch (err) {
     clearInterval(loadingTimer);
     console.error(err);
@@ -2336,104 +2359,72 @@ function openBook() {
   show("book");
   renderPage();
   if (temAcessoCompleto()) buildPrint();
-  atualizarBarraNarracaoLivro();
+  atualizarBarraCineminha();
 }
 
-async function prepararNarracaoMetade() {
-  if (temAcessoCompleto() || !state.story?.pages?.length) return;
+async function prepararAudiosCinema() {
+  if (!state.story?.pages?.length) return;
   const bar = document.getElementById("bookNarrBar");
   if (bar) bar.hidden = false;
-  atualizarBarraNarracaoLivro();
+  atualizarBarraCineminha();
   try {
+    const limite = temAcessoCompleto() ? state.story.pages.length : paginasGratis();
     const resp = await fetch("/api/narrar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        historiaId: "preview-" + Date.now(),
+        historiaId: "cinema-" + Date.now(),
         paginas: state.story.pages,
         previa: true,
-        atePagina: paginasGratis()
+        porPagina: true,
+        atePagina: limite
       })
     });
     if (!resp.ok) throw new Error("falha na narração");
     const r = await resp.json();
-    if (!r.audioBase64) throw new Error("sem áudio");
-    state.previewAudioBase64 = r.audioBase64;
-    state.previewAudioPronto = true;
+    if (!r.audios || !r.audios.length) throw new Error("sem áudios");
+    state.cinemaAudios = r.audios;
+    state.cinemaPronto = r.audios.some(Boolean);
   } catch (e) {
-    console.error("narracao metade", e);
-    state.previewAudioPronto = false;
+    console.error("audios cinema", e);
+    state.cinemaPronto = false;
   }
-  atualizarBarraNarracaoLivro();
+  atualizarBarraCineminha();
 }
 
-function atualizarBarraNarracaoLivro() {
+function atualizarBarraCineminha() {
   const bar = document.getElementById("bookNarrBar");
   const msg = document.getElementById("bookNarrMsg");
-  const btnHead = document.getElementById("narrarLivroBtn");
   const btnBar = document.getElementById("bookNarrPlay");
-  const mostrar = state.story && !temAcessoCompleto() && !document.getElementById("book").hidden;
-  if (bar) bar.hidden = !mostrar;
-  if (btnHead) btnHead.hidden = !mostrar;
-  if (!mostrar) return;
-  const txt = state.previewAudioPronto
-    ? "Narração pronta — ouça até a metade ✨"
-    : "Preparando a narração até a metade...";
-  if (msg) msg.textContent = txt;
-  const label = state.previewAudioPronto ? "▶ Ouvir até aqui" : "⏳ Aguarde...";
-  if (btnBar) { btnBar.textContent = label; btnBar.disabled = !state.previewAudioPronto; }
-  if (btnHead) { btnHead.textContent = state.previewAudioPronto ? "🎧 Ouvir" : "⏳"; btnHead.disabled = !state.previewAudioPronto; }
-}
-
-function ouvirNarracaoLivro() {
-  if (!state.previewAudioBase64) return;
-  abrirPlayerPreviewLivro();
-}
-
-function abrirPlayerPreviewLivro() {
-  const ov = document.getElementById("playerOverlay");
-  ov.hidden = false;
-  document.getElementById("playerTitulo").textContent = state.story?.title || "Narração";
-  document.getElementById("playerStatus").textContent = "Preparando...";
-  document.getElementById("playerBtns").innerHTML = "";
-
-  narracaoAudio = new Audio();
-  narracaoAudio.play().catch(() => {});
-
-  narracaoAudio.src = base64ParaAudioURL(state.previewAudioBase64);
-  document.getElementById("playerStatus").textContent = "▶ Ouça até a metade...";
-
-  let confirmouPlay = false;
-  const vigia = setTimeout(() => {
-    if (!confirmouPlay) falhaPreviewLivro("A voz demorou para carregar.");
-  }, 8000);
-
-  narracaoAudio.onplaying = () => { confirmouPlay = true; clearTimeout(vigia); };
-  narracaoAudio.onerror = () => falhaPreviewLivro("Não consegui carregar o áudio.");
-
-  function falhaPreviewLivro(motivo) {
-    clearTimeout(vigia);
-    pararTrilhaSuave(false);
-    document.getElementById("playerStatus").textContent = "Ops, a voz não carregou. Tente de novo?";
-    document.getElementById("playerBtns").innerHTML = `
-      <button class="player-ctrl" onclick="abrirPlayerPreviewLivro()">🔄 Tentar de novo</button>
-      <button class="player-ctrl ghost" onclick="fecharPlayer()">Fechar</button>`;
+  const btnHead = document.getElementById("cinemaBtn");
+  const noLivro = state.story && !document.getElementById("book").hidden;
+  if (bar) bar.hidden = !noLivro;
+  if (!noLivro) return;
+  if (state.cinemaPronto) {
+    if (msg) msg.textContent = "Cineminha pronto — assista com narração ✨";
+    if (btnBar) { btnBar.textContent = "▶ Cineminha"; btnBar.disabled = false; }
+    if (btnHead) { btnHead.hidden = false; btnHead.disabled = false; }
+  } else {
+    if (msg) msg.textContent = "Preparando o Cineminha com a voz...";
+    if (btnBar) { btnBar.textContent = "⏳ Aguarde..."; btnBar.disabled = true; }
+    if (btnHead) btnHead.hidden = true;
   }
+}
 
-  iniciarTrilhaSuave();
-  narracaoAudio.play().catch(() => falhaPreviewLivro("O navegador bloqueou o áudio."));
-
-  narracaoAudio.onended = () => {
-    clearTimeout(vigia);
-    pararTrilhaSuave(true);
-    document.getElementById("playerStatus").textContent = "Gostou? Desbloqueie o final e a narração completa ✨";
-    document.getElementById("playerBtns").innerHTML = `
-      <button class="player-ctrl" onclick="goCheckout()">🔓 Ver planos e desbloquear</button>
-      <button class="player-ctrl ghost" onclick="fecharPlayer()">Fechar</button>`;
-  };
+function cinemaLimite() {
+  if (!state.story?.pages) return 0;
+  const porAudio = state.cinemaAudios.filter(Boolean).length;
+  const porAcesso = temAcessoCompleto() ? state.story.pages.length : paginasGratis();
+  return Math.min(porAcesso, porAudio || porAcesso);
 }
 function totalScreens() { return state.story.pages.length + 1; } // capa + páginas
 let turning = false;
+
+function textoPagina(pg) {
+  if (!pg) return "";
+  if (typeof pg === "string") return pg;
+  return pg.text || pg.texto || pg.content || "";
+}
 
 function pageHTML(p) {
   const paywallIdx = indicePaywall();
@@ -2479,11 +2470,16 @@ function pageHTML(p) {
     </div>`;
   }
   const pg = state.story.pages[p - 1];
+  if (!pg) {
+    return `<div class="page-text" style="margin:auto;padding:40px 26px;text-align:center">
+      <p>Essa página não veio completa. Volte uma e tente de novo 🌙</p>
+    </div>`;
+  }
   const sleepy = p >= totalScreens() - 2;
   return `<div class="page-illus">${sceneSVG({ seed: p, emojis: pg.emojis, closed: sleepy, uid: "pg" })}</div>
     <div class="page-text">
       <div class="page-num">Página ${p} de ${state.story.pages.length}</div>
-      <p>${esc(pg.text)}</p>
+      <p>${esc(textoPagina(pg))}</p>
     </div>`;
 }
 
@@ -2532,8 +2528,7 @@ function renderPage(turnDir) {
     return `<div class="dot ${i === p ? "on" : ""} ${locked ? "lock" : ""}"></div>`;
   }).join("");
   document.getElementById("printBtn").hidden = !temAcessoCompleto();
-  document.getElementById("cinemaBtn").hidden = !temAcessoCompleto();
-  atualizarBarraNarracaoLivro();
+  atualizarBarraCineminha();
 
   // última página: mostra o convite para o dashboard/oferta (momento de conversão)
   const nav = document.getElementById("bookNav");
@@ -2632,21 +2627,31 @@ let cinemaState = { idx: 0, timer: null, paused: false, playing: false };
 
 function startCinema() {
   if (!state.story) return;
+  if (!state.cinemaPronto) return;
   cinemaState = { idx: 0, timer: null, paused: false, playing: true };
   const overlay = document.getElementById("cinema");
   overlay.hidden = false;
   overlay.classList.remove("cinema-paused");
   document.getElementById("cinemaPause").textContent = "⏸";
-  const limite = temAcessoCompleto() ? state.story.pages.length : paginasGratis();
+  const limite = cinemaLimite();
   document.getElementById("cinemaProgress").innerHTML =
     Array.from({ length: limite }, () => `<div class="seg"><div class="fill"></div></div>`).join("");
+  if (narracaoAudio) { try { narracaoAudio.pause(); } catch (e) {} }
+  narracaoAudio = new Audio();
+  narracaoAudio.play().catch(() => {});
+  iniciarTrilhaSuave();
   cinemaShow(0);
 }
 
 function cinemaShow(i) {
-  const limite = temAcessoCompleto() ? state.story.pages.length : paginasGratis();
+  const limite = cinemaLimite();
   if (i >= limite) {
-    if (!temAcessoCompleto()) { stopCinema(); abrirOferta(); return; }
+    if (!temAcessoCompleto()) {
+      stopCinema();
+      state.page = indicePaywall();
+      renderPage();
+      return;
+    }
     cinemaEnd();
     return;
   }
@@ -2654,42 +2659,58 @@ function cinemaShow(i) {
   const pg = state.story.pages[i];
   const total = state.story.pages.length;
   const sleepy = i >= total - 2;
-
-  // cena com efeito ken burns (zoom lento)
   const scene = document.getElementById("cinemaScene");
   scene.innerHTML = `<div class="ken">${sceneSVG({ seed: i + 1, emojis: pg.emojis, closed: sleepy, uid: "cin" + i })}</div>`;
 
-  // texto surge
   const txt = document.getElementById("cinemaText");
   txt.classList.remove("show");
-  void txt.offsetWidth; // reinicia animação
-  txt.textContent = pg.text;
+  void txt.offsetWidth;
+  txt.textContent = textoPagina(pg);
   txt.classList.add("show");
 
-  // duração proporcional ao tamanho do texto (tempo de leitura), mínimo 6s
-  const palavras = pg.text.split(/\s+/).length;
-  const dur = Math.max(6, Math.min(12, palavras * 0.55));
-
-  // barra de progresso
+  const audioB64 = state.cinemaAudios[i];
   const segs = document.querySelectorAll("#cinemaProgress .seg");
-  segs.forEach((s, k) => {
-    s.classList.remove("active");
-    s.classList.toggle("done", k < i);
-    if (k === i) {
-      s.style.setProperty("--dur", dur + "s");
-      s.classList.add("active");
-    }
-  });
 
-  // narração (se houver áudio no futuro) entraria aqui
-  if (window.cinemaNarrate) window.cinemaNarrate(pg.text);
+  function marcarProgresso(dur) {
+    segs.forEach((s, k) => {
+      s.classList.remove("active");
+      s.classList.toggle("done", k < i);
+      if (k === i) {
+        s.style.setProperty("--dur", dur + "s");
+        s.classList.add("active");
+      }
+    });
+    cinemaState._dur = dur;
+    cinemaState._start = Date.now();
+  }
 
   clearTimeout(cinemaState.timer);
-  if (!cinemaState.paused) {
-    cinemaState.timer = setTimeout(() => cinemaShow(i + 1), dur * 1000);
+  if (narracaoAudio) { try { narracaoAudio.pause(); } catch (e) {} }
+
+  if (audioB64) {
+    narracaoAudio = new Audio(base64ParaAudioURL(audioB64));
+    narracaoAudio.onloadedmetadata = () => {
+      const dur = Math.max(2, narracaoAudio.duration || 8);
+      marcarProgresso(dur);
+    };
+    narracaoAudio.onended = () => {
+      if (cinemaState.playing && !cinemaState.paused) cinemaShow(i + 1);
+    };
+    narracaoAudio.onerror = () => {
+      cinemaState.timer = setTimeout(() => cinemaShow(i + 1), 7000);
+    };
+    narracaoAudio.play().catch(() => {
+      cinemaState.timer = setTimeout(() => cinemaShow(i + 1), 7000);
+    });
+    marcarProgresso(8);
+  } else {
+    const palavras = textoPagina(pg).split(/\s+/).length;
+    const dur = Math.max(6, Math.min(12, palavras * 0.55));
+    marcarProgresso(dur);
+    if (!cinemaState.paused) {
+      cinemaState.timer = setTimeout(() => cinemaShow(i + 1), dur * 1000);
+    }
   }
-  cinemaState._dur = dur;
-  cinemaState._start = Date.now();
 }
 
 function cinemaToggle() {
@@ -2700,21 +2721,24 @@ function cinemaToggle() {
     overlay.classList.add("cinema-paused");
     btn.textContent = "▶";
     clearTimeout(cinemaState.timer);
-    // guarda tempo restante
-    const gasto = Date.now() - cinemaState._start;
-    cinemaState._rest = Math.max(0, cinemaState._dur * 1000 - gasto);
-    if (window.cinemaPauseAudio) window.cinemaPauseAudio();
+    if (narracaoAudio) narracaoAudio.pause();
+    pausarTrilhaSuave();
   } else {
     overlay.classList.remove("cinema-paused");
     btn.textContent = "⏸";
     cinemaState._start = Date.now();
-    cinemaState.timer = setTimeout(() => cinemaShow(cinemaState.idx + 1), cinemaState._rest || 0);
-    if (window.cinemaResumeAudio) window.cinemaResumeAudio();
+    if (narracaoAudio && narracaoAudio.src) {
+      retomarTrilhaSuave();
+      narracaoAudio.play().catch(() => {});
+    } else {
+      cinemaState.timer = setTimeout(() => cinemaShow(cinemaState.idx + 1), cinemaState._rest || 0);
+    }
   }
 }
 
 function cinemaEnd() {
-  // última tela: "boa noite" suave, depois fecha
+  if (narracaoAudio) { try { narracaoAudio.pause(); } catch (e) {} }
+  pararTrilhaSuave(true);
   const txt = document.getElementById("cinemaText");
   txt.classList.remove("show");
   void txt.offsetWidth;
@@ -2728,8 +2752,9 @@ function cinemaEnd() {
 function stopCinema() {
   clearTimeout(cinemaState.timer);
   cinemaState.playing = false;
+  if (narracaoAudio) { try { narracaoAudio.pause(); } catch (e) {} narracaoAudio = null; }
+  pararTrilhaSuave(false);
   document.getElementById("cinema").hidden = true;
-  if (window.cinemaStopAudio) window.cinemaStopAudio();
 }
 
 /* remove emojis e símbolos que o jsPDF não desenha (mantém acentos do português) */

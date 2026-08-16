@@ -27,23 +27,34 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Faltam dados da história." });
     }
 
-    // ---- MODO PRÉVIA: trecho curto (dashboard) ou até metade da história (funil grátis) ----
+    // ---- MODO PRÉVIA / CINEMINHA: um áudio por página para virar junto com a voz ----
     if (previa) {
       const atePagina = parseInt(req.body.atePagina, 10);
-      let trecho;
-      if (atePagina > 0) {
-        const limite = Math.min(atePagina, paginas.length);
-        trecho = paginas
-          .slice(0, limite)
-          .map(p => limparTexto(p.text))
-          .join("\n\n... ");
-      } else {
-        trecho = limparTexto(paginas[0].text).split(" ").slice(0, 28).join(" ");
+      const limite = atePagina > 0 ? Math.min(atePagina, paginas.length) : 1;
+      const fatia = paginas.slice(0, limite);
+
+      if (req.body.porPagina) {
+        const audios = await Promise.all(fatia.map(async (p) => {
+          const trecho = limparTexto(p.text || p.texto || p.content || "");
+          if (!trecho) return null;
+          const ttsResp = await fetch("https://api.openai.com/v1/audio/speech", {
+            method: "POST",
+            headers: { Authorization: "Bearer " + OPENAI_KEY, "Content-Type": "application/json" },
+            body: JSON.stringify({ model: "tts-1", voice: "nova", input: trecho, speed: 0.68 })
+          });
+          if (!ttsResp.ok) return null;
+          const buf = Buffer.from(await ttsResp.arrayBuffer());
+          return buf.toString("base64");
+        }));
+        if (!audios.some(Boolean)) return res.status(502).json({ error: "Falha ao gerar áudios." });
+        return res.status(200).json({ audios, previa: true });
       }
+
+      const trecho = fatia.map(p => limparTexto(p.text || p.texto || "")).join("\n\n... ");
       const ttsResp = await fetch("https://api.openai.com/v1/audio/speech", {
         method: "POST",
         headers: { Authorization: "Bearer " + OPENAI_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "tts-1", voice: "nova", input: trecho, speed: 0.92 })
+        body: JSON.stringify({ model: "tts-1", voice: "nova", input: trecho, speed: 0.68 })
       });
       if (!ttsResp.ok) return res.status(502).json({ error: "Falha ao gerar prévia." });
       const buf = Buffer.from(await ttsResp.arrayBuffer());
@@ -74,7 +85,7 @@ export default async function handler(req, res) {
         model: "tts-1",
         voice: "nova",          // voz feminina suave; boa para ninar
         input: texto,
-        speed: 0.92             // um pouco mais devagar, tom de história de ninar
+        speed: 0.68             // bem lenta, tom de ninar
       })
     });
 
