@@ -52,10 +52,11 @@ REGRAS:
 - A lição aparece pelas AÇÕES do personagem, nunca como moral explícita.
 - As 2 últimas páginas desaceleram: tom calmo, bocejos, olhinhos pesados; a última termina com ${nome} dormindo e um "boa noite".
 - Para cada página, escolha 2 ou 3 emojis que ilustrem EXATAMENTE o que acontece naquela página (lugar + ação). Ex.: mar→🌊🐚, floresta→🌲🦊, quarto/sono→🛏️🌙, castelo→🏰👑, espaço→🚀🌟.
+- Para cada página, informe também o campo "cena" com EXATAMENTE um destes valores (o lugar visual da página): quarto, mar, floresta, castelo, espaco, vulcao, montanhas, jardim, nuvens, campo, cidade, colinas. As 2 últimas páginas devem ser "quarto".
 - Crie um título encantador curto e uma dedicatória de 1 frase assinada por "${leitor || "quem ama a criança"}".
 
 RESPONDA APENAS com JSON válido, sem markdown, sem crases, neste formato exato:
-{"title":"...","dedication":"...","pages":[{"text":"...","emojis":"🦖🌋⭐"}]}`;
+{"title":"...","dedication":"...","pages":[{"text":"...","emojis":"🦖🌋⭐","cena":"vulcao"}]}`;
 
     const r = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -88,11 +89,15 @@ RESPONDA APENAS com JSON válido, sem markdown, sem crases, neste formato exato:
       story = JSON.parse(content.substring(s, en + 1));
     }
 
+    const CENAS_OK = { quarto:1, mar:1, floresta:1, castelo:1, espaco:1, vulcao:1, montanhas:1, jardim:1, nuvens:1, campo:1, cidade:1, colinas:1 };
     story.pages = (story.pages || []).map(p => {
-      if (typeof p === "string") return { text: p.trim(), emojis: "🌙⭐✨" };
+      if (typeof p === "string") return { text: p.trim(), emojis: "🌙⭐✨", cena: "" };
       const text = String(p.text || p.texto || p.content || "").trim();
       const emojis = p.emojis || p.emoji || "🌙⭐✨";
-      return { text, emojis };
+      let cena = String(p.cena || p.scene || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (cena === "espaco" || cena === "espaço") cena = "espaco";
+      if (!CENAS_OK[cena]) cena = "";
+      return { text, emojis, cena };
     }).filter(p => p.text);
 
     if (story.pages.length > paginas) story.pages = story.pages.slice(0, paginas);

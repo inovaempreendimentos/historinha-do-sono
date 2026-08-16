@@ -1117,22 +1117,10 @@ function segEmojis(str) {
   } catch (e) { return Array.from(str || "").filter(s => s.trim()); }
 }
 
-/* cenário da página: lê o texto + tema + emojis e escolhe a paisagem */
-function detectarCenario(texto, tema, emojis) {
-  const t = ((texto || "") + " " + (tema || "") + " " + (emojis || "")).toLowerCase();
-  const tem = (...xs) => xs.some(x => t.includes(x));
-  if (tem("dorm", "sono", "cama", "travesseiro", "quarto", "bocej", "pijama", "boa noite", "🛏️", "😴")) return "quarto";
-  if (tem("mar", "oceano", "praia", "onda", "peixe", "concha", "barco", "sereia", "mergulh", "🌊", "🐚", "🐟", "🧜")) return "mar";
-  if (tem("floresta", "árvore", "arvore", "bosque", "folha", "raposa", "coelho", "urso", "🌲", "🦊", "🐰", "🐻")) return "floresta";
-  if (tem("castelo", "princesa", "príncipe", "principe", "rei", "rainha", "torre", "coroa", "🏰", "👑")) return "castelo";
-  if (tem("espaço", "espaco", "foguete", "planeta", "astronauta", "galáxia", "galaxia", "🚀", "🪐", "👽")) return "espaco";
-  if (tem("dino", "vulcão", "vulcao", "pré-hist", "pre-hist", "🦖", "🦕", "🌋")) return "vulcao";
-  if (tem("montanha", "colina", "vale", "neve", "🗻", "⛰️")) return "montanhas";
-  if (tem("jardim", "flor", "borboleta", "arco-íris", "arcoiris", "unicórnio", "unicornio", "🌈", "🌸", "🦋", "🦄")) return "jardim";
-  if (tem("nuvem", "céu", "ceu", "voar", "passarinho", "pássaro", "passaro", "☁️", "🐦")) return "nuvens";
-  if (tem("futebol", "bola", "campo", "⚽")) return "campo";
-  if (tem("herói", "heroi", "capa", "poder", "🦸")) return "cidade";
-  // fallback pelo tema do quiz
+/* cenário da página: prioriza cena da IA, depois texto/emojis da PÁGINA (não o tema inteiro) */
+const CENAS_VALIDAS = { quarto:1, mar:1, floresta:1, castelo:1, espaco:1, vulcao:1, montanhas:1, jardim:1, nuvens:1, campo:1, cidade:1, colinas:1 };
+
+function cenarioDoTema(tema) {
   const temaL = (tema || "").toLowerCase();
   if (temaL.includes("mar")) return "mar";
   if (temaL.includes("floresta")) return "floresta";
@@ -1145,10 +1133,34 @@ function detectarCenario(texto, tema, emojis) {
   return null;
 }
 
+function detectarCenario(texto, tema, emojis, cenaHint, sleepy) {
+  const hint = String(cenaHint || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (CENAS_VALIDAS[hint]) return hint;
+
+  // IMPORTANTE: não mistura o tema global aqui — senão todas as páginas ficam iguais
+  const t = ((texto || "") + " " + (emojis || "")).toLowerCase();
+  const tem = (...xs) => xs.some(x => t.includes(x));
+
+  if (sleepy || tem("dorm", "sono", "cama", "travesseiro", "quarto", "bocej", "pijama", "boa noite", "olhinho", "cobertor", "🛏️", "😴")) return "quarto";
+  if (tem("mar", "oceano", "praia", "onda", "peixe", "concha", "barco", "sereia", "mergulh", "água", "agua", "navio", "🌊", "🐚", "🐟", "🧜")) return "mar";
+  if (tem("floresta", "árvore", "arvore", "bosque", "folha", "raposa", "coelho", "urso", "trilha", "mato", "🌲", "🦊", "🐰", "🐻")) return "floresta";
+  if (tem("castelo", "princesa", "príncipe", "principe", "rei", "rainha", "torre", "coroa", "trono", "🏰", "👑")) return "castelo";
+  if (tem("espaço", "espaco", "foguete", "planeta", "astronauta", "galáxia", "galaxia", "estrela cadente", "🚀", "🪐", "👽")) return "espaco";
+  if (tem("dino", "vulcão", "vulcao", "pré-hist", "pre-hist", "ossos", "🦖", "🦕", "🌋")) return "vulcao";
+  if (tem("montanha", "colina", "vale", "neve", "pico", "🗻", "⛰️")) return "montanhas";
+  if (tem("jardim", "flor", "borboleta", "arco-íris", "arcoiris", "unicórnio", "unicornio", "fada", "magia", "🌈", "🌸", "🦋", "🦄")) return "jardim";
+  if (tem("nuvem", "céu", "ceu", "voar", "passarinho", "pássaro", "passaro", "asa", "☁️", "🐦")) return "nuvens";
+  if (tem("futebol", "bola", "campo", "gol", "⚽")) return "campo";
+  if (tem("herói", "heroi", "capa", "poder", "cidade", "🦸")) return "cidade";
+
+  // só no fim: dica suave do tema (capa / páginas sem pista clara)
+  return cenarioDoTema(tema);
+}
+
 function sceneSVG(opts) {
   const {
     seed = 0, emojis = "🌙⭐", avatar = state.avatar, closed = false, uid = "s",
-    texto = "", tema = state.tema || ""
+    texto = "", tema = state.tema || "", cena = ""
   } = opts;
   const gid = "sky_" + uid + seed;
   const W = 560, H = 420;
@@ -1157,7 +1169,8 @@ function sceneSVG(opts) {
     return x - Math.floor(x);
   };
 
-  const cenario = detectarCenario(texto, tema, emojis) || ["colinas", "floresta", "montanhas", "mar", "nuvens"][seed % 5];
+  const cenario = detectarCenario(texto, tema, emojis, cena, closed)
+    || ["colinas", "floresta", "montanhas", "mar", "nuvens"][seed % 5];
 
   const skyMap = {
     quarto: ["#0e0d28", "#1a1840", "#2a2460"],
@@ -1284,9 +1297,9 @@ function sceneSVG(opts) {
 
   const props = segEmojis(emojis).slice(0, 3);
   const spots = [
-    [[78, 250, 54], [455, 205, 46], [340, 120, 38]],
-    [[470, 255, 56], [105, 175, 44], [310, 105, 36]],
-    [[95, 185, 48], [430, 145, 42], [485, 275, 54]]
+    [[78, 240, 68], [455, 195, 58], [340, 110, 48]],
+    [[470, 245, 70], [105, 165, 56], [310, 95, 46]],
+    [[95, 175, 62], [430, 135, 54], [485, 265, 66]]
   ][seed % 3];
   const propSvg = props.map((p, i) => {
     const [px, py, ps] = spots[i] || spots[0];
@@ -1552,8 +1565,8 @@ async function listarHistorias() {
 
 /* ---- trilhas de temas (levam a criar história trabalhando um valor) ---- */
 const VOZES = {
-  feminina: { id: "coral", titulo: "Feminina", desc: "coral · ninar" },
-  masculina: { id: "ash", titulo: "Masculina", desc: "ash · ninar" }
+  feminina: { id: "nova", titulo: "Feminina", desc: "doce · mágica · ninar" },
+  masculina: { id: "ash", titulo: "Masculina", desc: "calma · ninar" }
 };
 function vozSalva() {
   try { return localStorage.getItem("hds_voz") === "masculina" ? "masculina" : "feminina"; }
@@ -2746,7 +2759,7 @@ function pageHTML(p) {
   const paywallIdx = indicePaywall();
   if (p === 0) {
     return `<div class="page-cover-full">
-      <div class="cover-scene">${sceneSVG({ seed: 0, emojis: state.story.pages[0]?.emojis, closed: false, uid: "cv", texto: textoPagina(state.story.pages[0]), tema: state.tema })}</div>
+      <div class="cover-scene">${sceneSVG({ seed: 0, emojis: state.story.pages[0]?.emojis, closed: false, uid: "cv", texto: textoPagina(state.story.pages[0]), tema: state.tema, cena: state.story.pages[0]?.cena })}</div>
       <div class="cover-inner">
         <div class="c-eyebrow">Historinha do Sono</div>
         <h3>${esc(state.story.title)}</h3>
@@ -2792,7 +2805,7 @@ function pageHTML(p) {
     </div>`;
   }
   const sleepy = p >= totalScreens() - 2;
-  return `<div class="page-illus">${sceneSVG({ seed: p, emojis: pg.emojis, closed: sleepy, uid: "pg", texto: textoPagina(pg), tema: state.tema })}</div>
+  return `<div class="page-illus">${sceneSVG({ seed: p, emojis: pg.emojis, closed: sleepy, uid: "pg", texto: textoPagina(pg), tema: state.tema, cena: pg.cena })}</div>
     <div class="page-text">
       <div class="page-num">Página ${p} de ${state.story.pages.length}</div>
       <p>${esc(textoPagina(pg))}</p>
@@ -2969,7 +2982,7 @@ function abrirPrepCinema(soMusica) {
   if (!soMusica && state.story?.pages?.[0]) {
     const pg0 = state.story.pages[0];
     document.getElementById("cinemaScene").innerHTML =
-      `<div class="ken">${sceneSVG({ seed: 1, emojis: pg0.emojis, closed: false, uid: "prep", texto: textoPagina(pg0), tema: state.tema })}</div>`;
+      `<div class="ken">${sceneSVG({ seed: 1, emojis: pg0.emojis, closed: false, uid: "prep", texto: textoPagina(pg0), tema: state.tema, cena: pg0.cena })}</div>`;
     document.getElementById("cinemaText").textContent = "";
     const badge = document.getElementById("cinemaPageBadge");
     if (badge) badge.textContent = "Cineminha";
@@ -3026,7 +3039,7 @@ function cinemaShow(i) {
   const sleepy = i >= total - 2;
   const scene = document.getElementById("cinemaScene");
   const txtPagina = textoPagina(pg);
-  scene.innerHTML = `<div class="ken">${sceneSVG({ seed: i + 1, emojis: pg.emojis, closed: sleepy, uid: "cin" + i, texto: txtPagina, tema: state.tema })}</div>`;
+  scene.innerHTML = `<div class="ken">${sceneSVG({ seed: i + 1, emojis: pg.emojis, closed: sleepy, uid: "cin" + i, texto: txtPagina, tema: state.tema, cena: pg.cena })}</div>`;
 
   const badge = document.getElementById("cinemaPageBadge");
   if (badge) badge.textContent = `Página ${i + 1} de ${limite}`;

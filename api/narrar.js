@@ -23,7 +23,7 @@ export default async function handler(req, res) {
 
   try {
     const { historiaId, paginas, previa, voz } = req.body || {};
-    const vozOk = ["coral", "ash", "nova", "sage", "shimmer", "onyx", "echo", "verse"].includes(voz) ? voz : "coral";
+    const vozOk = ["coral", "ash", "nova", "sage", "shimmer", "onyx", "echo", "verse", "fable", "ballad", "marin"].includes(voz) ? voz : "nova";
     if (!historiaId || !paginas || !paginas.length) {
       return res.status(400).json({ error: "Faltam dados da história." });
     }
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
     }
 
     // 1) se já existe o áudio guardado, só devolve a URL (não gera de novo)
-    const nomeArquivo = `narracao-v2-${vozOk}-${historiaId}.mp3`;
+    const nomeArquivo = `narracao-v3-${vozOk}-${historiaId}.mp3`;
     const urlPublica = `${SUPABASE_URL}/storage/v1/object/public/narracoes/${nomeArquivo}`;
     const jaExiste = await fetch(urlPublica, { method: "HEAD" });
     if (jaExiste.ok) {
@@ -114,20 +114,24 @@ export default async function handler(req, res) {
   }
 }
 
-const INSTRUCAO_NINAR_F = `Você é uma contadora de histórias infantis brasileira, à beira da cama.
-Fale em português do Brasil, com carinho, voz baixa e pausas naturais.
-Não soe como locutora de GPS nem como tradutor automático.
-Tom quente, um pouco lento, como quem está ninando uma criança.`;
+const INSTRUCAO_NINAR_F = `Speak in Brazilian Portuguese only.
+You are a gentle fairy storyteller at bedtime.
+Voice: soft, sweet, warm, slightly whispery, magical.
+Pace: slow and calm, with soft pauses between sentences.
+Never sound like a GPS, news anchor, or robot.
+Make the child feel safe, cozy, and sleepy.`;
 
-const INSTRUCAO_NINAR_M = `Você é um contador de histórias infantis brasileiro, à beira da cama.
-Fale em português do Brasil, com carinho, voz baixa e pausas naturais.
-Não soe como locutor de GPS nem como tradutor automático.
-Tom quente, um pouco lento, como quem está ninando uma criança.`;
+const INSTRUCAO_NINAR_M = `Speak in Brazilian Portuguese only.
+You are a gentle bedtime storyteller for children.
+Voice: soft, warm, kind, calm, slightly magical.
+Pace: slow and calm, with soft pauses between sentences.
+Never sound like a GPS, news anchor, or robot.
+Make the child feel safe, cozy, and sleepy.`;
 
-const VOZES_MASC = { ash: 1, onyx: 1, echo: 1, verse: 1 };
+const VOZES_MASC = { ash: 1, onyx: 1, echo: 1, verse: 1, cedar: 1 };
 
 async function gerarFala(apiKey, texto, voz) {
-  const escolhida = voz || "coral";
+  const escolhida = voz || "nova";
   const tts = await fetch("https://api.openai.com/v1/audio/speech", {
     method: "POST",
     headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
@@ -147,7 +151,7 @@ async function gerarFala(apiKey, texto, voz) {
       model: "tts-1-hd",
       voice: VOZES_MASC[escolhida] ? "onyx" : "nova",
       input: texto,
-      speed: 0.88
+      speed: 0.85
     })
   });
   if (!fallback.ok) {
