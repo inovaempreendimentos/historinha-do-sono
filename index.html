@@ -1266,36 +1266,41 @@ async function checarSessaoInicial() {
     state.usuario = session.user;
     await atualizarPerfil();
     try {
-      if (localStorage.getItem("hds_preview")) {
-        restaurarPreviewLocal();
-        if (state.assinante || state.creditos > 0) {
-          if (await desbloquearHistoriaAtual()) {
-            atualizarBotaoConta();
-            abrirDash();
-            return;
-          }
-        }
-        if (state.story) await salvarHistoria(state.story);
+      const preview = localStorage.getItem("hds_preview");
+      const quizRaw = localStorage.getItem("hds_quiz");
+      let quiz = null;
+      try { quiz = quizRaw ? JSON.parse(quizRaw) : null; } catch (e) {}
+      if (preview) restaurarPreviewLocal();
+      if (!state.story && quiz && quiz.story && quiz.story.pages) {
+        Object.assign(state, {
+          nome: quiz.nome || "", idade: quiz.idade || "", genero: quiz.genero || "",
+          tema: quiz.tema || "", licao: quiz.licao || "", detalhe: quiz.detalhe || "",
+          leitor: quiz.leitor || ""
+        });
+        if (quiz.avatar) state.avatar = quiz.avatar;
+        state.story = quiz.story;
+        state.unlocked = !!quiz.unlocked;
+      }
+      if (state.story) {
+        try { localStorage.removeItem("hds_quiz"); } catch (e) {}
+        await guardarHistoriaNaConta();
         atualizarBotaoConta();
         abrirDash();
         return;
       }
     } catch (e) {}
-    // se voltou do Google no meio de uma criação, restaura os dados e retoma
-    // (isso tem prioridade — precisa terminar a história antes de qualquer troca de domínio)
     try {
       const salvo = localStorage.getItem("hds_quiz");
       if (salvo) {
         const q = JSON.parse(salvo);
         localStorage.removeItem("hds_quiz");
-        if (q.querGerar && q.nome && q.tema) {
+        if (q.querGerar && q.nome && q.tema && !q.story) {
           Object.assign(state, {
             nome: q.nome, idade: q.idade, genero: q.genero, tema: q.tema,
             licao: q.licao, detalhe: q.detalhe, leitor: q.leitor
           });
           if (q.avatar) state.avatar = q.avatar;
           atualizarBotaoConta();
-          // retoma direto na geração da história (não recomeça o quiz)
           generateStory();
           return;
         }
@@ -1314,9 +1319,9 @@ async function checarSessaoInicial() {
     } catch (e) {}
     // já está logada, sem história pra retomar: se está no domínio de
     // marketing (LP), entrega a sessão pro domínio do app e vai pra lá
-    if (estaNoDominioMarketing()) {
+    if (estaNoDominioMarketing() && !localStorage.getItem("hds_preview") && !localStorage.getItem("hds_quiz")) {
       const foi = await handoffParaApp();
-      if (foi) return; // a página vai navegar embora
+      if (foi) return;
     }
     // já está no domínio do app (ou não há separação configurada):
     // vai direto pro dashboard, em vez de mostrar a tela inicial de novo
@@ -1363,7 +1368,7 @@ async function aplicarPagamentosPendentes() {
 /* ---- salvar história na estante da mãe ---- */
 let state_ultimaHistoriaId = null;
 async function salvarHistoria(story) {
-  if (!sb || !state.usuario) return;
+  if (!sb || !state.usuario || !story) return false;
   try {
     const { data, error } = await sb.from("historias").insert({
       user_id: state.usuario.id,
@@ -1374,10 +1379,18 @@ async function salvarHistoria(story) {
       paginas: story.pages,
       avatar: state.avatar
     }).select("id").single();
-    if (!error && data) state_ultimaHistoriaId = data.id;
-    // guarda/atualiza a criança (para reaproveitar em novas histórias)
+    if (error) { console.error("salvar historia", error); return false; }
+    if (data) state_ultimaHistoriaId = data.id;
     await salvarCrianca();
-  } catch (e) { console.error("salvar historia", e); }
+    try { localStorage.removeItem("hds_preview"); } catch (e) {}
+    return true;
+  } catch (e) { console.error("salvar historia", e); return false; }
+}
+
+async function guardarHistoriaNaConta() {
+  if (!state.usuario || !state.story) return false;
+  if (state_ultimaHistoriaId) return true;
+  return await salvarHistoria(state.story);
 }
 
 /* ---- salvar/listar crianças (filhos) ---- */
@@ -2071,11 +2084,10 @@ async function submitAuth() {
     authReceber = false;
     document.getElementById("authOverlay").hidden = true;
     if (state.story) {
-      if (state.assinante || state.creditos > 0) {
+      if (state.assinante || state.creditos > 0 || localStorage.getItem("hds_cupom_ok") === "1") {
         await desbloquearHistoriaAtual();
-      } else if (!state_ultimaHistoriaId) {
-        await salvarHistoria(state.story);
       }
+      await guardarHistoriaNaConta();
       abrirDash();
       return;
     }
@@ -2091,13 +2103,15 @@ async function submitAuth() {
 }
 
 async function loginGoogle() {
-  // salva o progresso do quiz antes de sair para o Google (senão perde tudo ao voltar)
   try {
+    if (state.story) salvarPreviewLocal(state.story);
     localStorage.setItem("hds_quiz", JSON.stringify({
       nome: state.nome, idade: state.idade, genero: state.genero,
       tema: state.tema, licao: state.licao, detalhe: state.detalhe,
       leitor: state.leitor, avatar: state.avatar,
-      querGerar: !!(state.nome && state.tema)
+      story: state.story,
+      unlocked: state.unlocked,
+      querGerar: !state.story && !!(state.nome && state.tema)
     }));
   } catch (e) {}
   await sb.auth.signInWithOAuth({
@@ -2172,7 +2186,9 @@ function salvarPreviewLocal(story) {
     localStorage.setItem("hds_preview", JSON.stringify({
       story, nome: state.nome, idade: state.idade, genero: state.genero,
       tema: state.tema, licao: state.licao, detalhe: state.detalhe,
-      leitor: state.leitor, avatar: state.avatar, ts: Date.now()
+      leitor: state.leitor, avatar: state.avatar,
+      unlocked: !!state.unlocked,
+      ts: Date.now()
     }));
   } catch (e) {}
 }
@@ -2189,7 +2205,7 @@ function restaurarPreviewLocal() {
     });
     if (d.avatar) state.avatar = d.avatar;
     state.story = d.story;
-    state.unlocked = false;
+    state.unlocked = !!d.unlocked;
     state.page = 0;
     return true;
   } catch (e) { return false; }
@@ -2234,7 +2250,7 @@ async function desbloquearHistoriaAtual() {
   }
 
   state.unlocked = true;
-  try { localStorage.removeItem("hds_preview"); } catch (e) {}
+  if (state.story) salvarPreviewLocal(state.story);
   renderPage();
   state.cinemaAudios = [];
   state.cinemaPronto = false;
