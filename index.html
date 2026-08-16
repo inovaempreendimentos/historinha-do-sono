@@ -262,6 +262,14 @@ footer{background:var(--night-deep);text-align:center;padding:40px 24px;font-siz
 .tap-hint.right{right:16px}
 @keyframes tapPulse{0%,100%{opacity:0;transform:translateX(0)}50%{opacity:.55;transform:translateX(4px)}}
 
+.book-narr-bar{max-width:420px;width:100%;margin:0 auto 10px;padding:10px 14px;border-radius:14px;background:rgba(255,217,142,.1);border:1px solid rgba(255,217,142,.28);display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.82rem;color:var(--paper);font-weight:600}
+.book-narr-bar .btn-small{flex:0 0 auto;padding:7px 12px;font-size:.75rem}
+.paywall .oferta-mini{display:flex;flex-direction:column;gap:10px;margin:18px 0;text-align:left}
+.paywall .oferta-mini button{width:100%}
+.paywall .oferta-mini .mini-tag{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#c99127;margin-bottom:4px}
+.paywall .cupom-row{display:flex;gap:8px;margin:14px 0 8px}
+.paywall .cupom-row input{flex:1;border:1.5px solid #e8dfd0;border-radius:12px;padding:10px 12px;font-family:inherit;font-weight:700;font-size:.9rem}
+.paywall .cupom-msg{font-size:.8rem;color:#c99127;min-height:1.1em;margin-bottom:8px}
 .book-nav{display:flex;align-items:center;gap:16px;margin-top:16px;flex:0 0 auto}
 .nav-btn{width:46px;height:46px;border-radius:50%;background:rgba(255,249,239,.1);border:2px solid rgba(255,249,239,.25);color:var(--paper);font-size:1.2rem;font-weight:800;transition:all .15s}
 .nav-btn:hover:not(:disabled){border-color:var(--moon);background:rgba(255,217,142,.12)}
@@ -446,7 +454,7 @@ footer{background:var(--night-deep);text-align:center;padding:40px 24px;font-siz
     <p class="hint">↑ toque no nome e escreva o do seu filho</p>
     <p class="sub">Em 2 minutos, uma historinha ilustrada onde <strong>seu filho é o herói</strong> — com o tema que ele ama e a lição que você quer ensinar. Pronta para ler hoje à noite.</p>
     <button class="btn-primary" onclick="startQuiz()">Criar a historinha de <span id="heroNameBtn">Sofia</span> ✨</button>
-    <p class="micro">Leia o começo grátis &nbsp;·&nbsp; Pronta em 2 minutos &nbsp;·&nbsp; Sem app para instalar</p>
+    <p class="micro">Metade grátis, com narração &nbsp;·&nbsp; Pronta em 2 minutos &nbsp;·&nbsp; Sem cadastro</p>
   </section>
 </div>
 
@@ -498,23 +506,23 @@ footer{background:var(--night-deep);text-align:center;padding:40px 24px;font-siz
 
 <section class="section light" id="preco">
   <div class="wrap">
-    <h2>Sua primeira historinha é por nossa conta</h2>
-    <p class="lead">Sem cartão, sem pegadinha — é só para você sentir a magia antes de decidir qualquer coisa.</p>
+    <h2>Experimente de graça — metade da historinha + narração</h2>
+    <p class="lead">Sem cadastro, sem cartão. Você cria, lê e ouve o começo. Se encantar, desbloqueia o resto.</p>
     <div class="price-stage single">
       <div class="price-card">
         <span class="tag">Grátis, agora</span>
         <h3>Historinha do Sono</h3>
         <div class="val">R$ 0</div>
         <ul>
-          <li>✦ História completa e única do seu filho</li>
-          <li>✦ Pronta em 2 minutos, lê hoje à noite</li>
-          <li>✦ PDF ilustrado para imprimir e guardar</li>
-          <li>✦ Sem cartão de crédito necessário</li>
+          <li>✦ Metade da história personalizada do seu filho</li>
+          <li>✦ Narração até a metade — ouça como fica</li>
+          <li>✦ Pronta em 2 minutos, sem criar conta</li>
+          <li>✦ Desbloqueie o final quando quiser</li>
         </ul>
         <button class="btn-primary" onclick="startQuiz()">Criar minha historinha grátis ✨</button>
       </div>
     </div>
-    <p class="guarantee">💛 Depois da primeira, se quiser criar mais para trabalhar outros valores com seu filho, mostramos as opções — sem compromisso nenhum agora.</p>
+    <p class="guarantee">💛 No meio da aventura mostramos os planos — sem compromisso antes de sentir a magia.</p>
   </div>
 </section>
 
@@ -574,8 +582,13 @@ footer{background:var(--night-deep);text-align:center;padding:40px 24px;font-siz
   <div class="book-head">
     <button class="btn-small" onclick="closeBook()">← início</button>
     <div class="book-title" id="bookTitle"></div>
+    <button class="btn-small" id="narrarLivroBtn" onclick="ouvirNarracaoLivro()" hidden>🎧 Ouvir</button>
     <button class="btn-small cinema-btn" id="cinemaBtn" onclick="startCinema()" hidden>▶ Cineminha</button>
     <button class="btn-small" id="printBtn" onclick="baixarPDF()" hidden>Baixar PDF 📖</button>
+  </div>
+  <div class="book-narr-bar" id="bookNarrBar" hidden>
+    <span id="bookNarrMsg">Preparando a narração...</span>
+    <button class="btn-small" id="bookNarrPlay" onclick="ouvirNarracaoLivro()">▶ Ouvir até aqui</button>
   </div>
 
   <div class="book-stage">
@@ -619,7 +632,7 @@ footer{background:var(--night-deep);text-align:center;padding:40px 24px;font-siz
     <button class="auth-close" onclick="fecharOferta()" aria-label="Fechar">&#10005;</button>
     <button class="oferta-voltar" onclick="fecharOferta()">&larr; Voltar</button>
     <div class="auth-logo">&#10024; Continue criando</div>
-    <p class="auth-sub">Suas hist&oacute;rias gr&aacute;tis acabaram. Escolha como continuar plantando boas sementes no seu filho:</p>
+    <p class="auth-sub">Desbloqueie o final da historinha e crie quantas quiser:</p>
     <div class="oferta-card">
       <div class="oferta-tag">Mais popular</div>
       <h4>Assinatura Mensal</h4>
@@ -701,7 +714,8 @@ const state = {
     eyes: "#5B3A1E", glasses: "nao", pj: "#B8A7E8",
     accessory: "nenhum", cheeks: "sim", expr: "feliz"
   },
-  story: null, page: 0, unlocked: false, step: 0
+  story: null, page: 0, unlocked: false, step: 0,
+  previewAudioBase64: null, previewAudioPronto: false
 };
 const SKINS = ["#F9DFC6", "#F6D5B8", "#EDBD94", "#D69A6B", "#A96B42", "#7A4A2B", "#5A3620"];
 const HAIRS = [
@@ -1237,6 +1251,16 @@ async function checarSessaoInicial() {
   if (session) {
     state.usuario = session.user;
     await atualizarPerfil();
+    try {
+      if (localStorage.getItem("hds_preview") && (state.assinante || state.creditos > 0)) {
+        restaurarPreviewLocal();
+        if (await desbloquearHistoriaAtual()) {
+          atualizarBotaoConta();
+          show("book");
+          return;
+        }
+      }
+    } catch (e) {}
     // se voltou do Google no meio de uma criação, restaura os dados e retoma
     // (isso tem prioridade — precisa terminar a história antes de qualquer troca de domínio)
     try {
@@ -1281,12 +1305,19 @@ async function checarSessaoInicial() {
     return;
   } else {
     state.usuario = null;
+    if (restaurarPreviewLocal()) {
+      atualizarBotaoConta();
+      show("book");
+      openBook();
+      prepararNarracaoMetade();
+    }
   }
   atualizarBotaoConta();
 }
 
 async function atualizarPerfil() {
   if (!state.usuario) return;
+  await aplicarPagamentosPendentes();
   const { data, error } = await sb
     .from("perfis").select("creditos, assinante, plano").eq("id", state.usuario.id).single();
   if (!error && data) {
@@ -1295,6 +1326,18 @@ async function atualizarPerfil() {
     state.plano = data.plano;
   }
   atualizarBotaoConta();
+}
+
+async function aplicarPagamentosPendentes() {
+  if (!state.usuario || !sb) return;
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    await fetch("/api/aplicar-pagamento", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + session.access_token }
+    });
+  } catch (e) {}
 }
 
 /* ---- salvar história na estante da mãe ---- */
@@ -1404,10 +1447,10 @@ function renderDash(historias) {
         <div class="hist-illus">${sceneSVG({ seed: 1, emojis: temaEmoji(h.tema), avatar: h.avatar || state.avatar, closed: false, uid: "d" + h.id.slice(0,6) })}</div>
         <div class="hist-info">
           <div class="hist-titulo">${esc(h.titulo || "Historinha")}</div>
-          <button class="hist-narr ${h.tem_narracao ? "on" : ""}" onclick="event.stopPropagation(); ${h.tem_narracao ? `tocarNarracao('${h.id}')` : `comprarNarracao('${h.id}')`}">
-            ${h.tem_narracao ? "▶ Ouvir narração" : "🎧 Narrar (R$ 7,90)"}
+          <button class="hist-narr ${(h.tem_narracao || state.assinante) ? "on" : ""}" onclick="event.stopPropagation(); ${(h.tem_narracao || state.assinante) ? `tocarNarracao('${h.id}')` : `comprarNarracao('${h.id}')`}">
+            ${(h.tem_narracao || state.assinante) ? "▶ Ouvir narração" : "🎧 Narrar (R$ 7,90)"}
           </button>
-          ${!h.tem_narracao ? `<button class="hist-previa" onclick="event.stopPropagation(); ouvirPrevia('${h.id}')">🎵 ouvir prévia</button>` : ""}
+          ${!(h.tem_narracao || state.assinante) ? `<button class="hist-previa" onclick="event.stopPropagation(); ouvirPrevia('${h.id}')">🎵 ouvir prévia</button>` : ""}
         </div>
       </div>`).join("");
     html += `</div>`;
@@ -1965,11 +2008,12 @@ async function submitAuth() {
   if (session) {
     state.usuario = session.user;
     await atualizarPerfil();
-    authReceber = false; // login ok, não volta pra landing
+    authReceber = false;
     document.getElementById("authOverlay").hidden = true;
-    // se veio do fluxo de gerar, continua gerando (a fada volta a rodar) —
-    // isso tem prioridade sobre trocar de domínio
-    if (state.nome && state.tema) { generateStory(); return; }
+    if (state.story && !temAcessoCompleto()) {
+      if (await desbloquearHistoriaAtual()) return;
+    }
+    if (state.nome && state.tema && !state.story) { generateStory(); return; }
     // login "normal" (não no meio de criar história): entrega a sessão
     // pro domínio do app, se estiver na LP
     if (estaNoDominioMarketing()) {
@@ -2044,16 +2088,172 @@ function abrirOferta() {
 }
 function fecharOferta() {
   document.getElementById("ofertaOverlay").hidden = true;
-  // se está logada, volta para o dashboard (não deixa presa numa tela morta)
+  if (state.story && !document.getElementById("book").hidden) return;
   if (state.usuario) { abrirDash(); }
   else { show("landing"); }
 }
 function irCheckout(qual) { window.open(OFERTAS[qual], "_blank"); }
 
-/* compat: paywall no meio foi removido (história agora é sempre completa) */
-const PAGINAS_GRATIS = 9999;
+/* ---- preview grátis (metade da história + narração) ---- */
+function jaUsouPreviewGratis() {
+  try { return localStorage.getItem("hds_free_preview") === "1"; } catch (e) { return false; }
+}
+function marcarPreviewGratisUsado() {
+  try { localStorage.setItem("hds_free_preview", "1"); } catch (e) {}
+}
+function salvarPreviewLocal(story) {
+  try {
+    localStorage.setItem("hds_preview", JSON.stringify({
+      story, nome: state.nome, idade: state.idade, genero: state.genero,
+      tema: state.tema, licao: state.licao, detalhe: state.detalhe,
+      leitor: state.leitor, avatar: state.avatar, ts: Date.now()
+    }));
+  } catch (e) {}
+}
+function restaurarPreviewLocal() {
+  try {
+    const raw = localStorage.getItem("hds_preview");
+    if (!raw) return false;
+    const d = JSON.parse(raw);
+    if (!d.story?.pages?.length) return false;
+    Object.assign(state, {
+      nome: d.nome || "", idade: d.idade || "", genero: d.genero || "",
+      tema: d.tema || "", licao: d.licao || "", detalhe: d.detalhe || "",
+      leitor: d.leitor || ""
+    });
+    if (d.avatar) state.avatar = d.avatar;
+    state.story = d.story;
+    state.unlocked = false;
+    state.page = 0;
+    return true;
+  } catch (e) { return false; }
+}
+function temAcessoCompleto() {
+  if (state.assinante) return true;
+  return !!state.unlocked;
+}
+function podeGerarCompleta() {
+  return !!(state.usuario && (state.assinante || state.creditos > 0));
+}
+function paginasGratis() {
+  if (!state.story?.pages?.length) return 9999;
+  if (temAcessoCompleto()) return state.story.pages.length;
+  return Math.max(1, Math.ceil(state.story.pages.length / 2));
+}
+function indicePaywall() { return paginasGratis() + 1; }
+
 function goCheckout() { abrirOferta(); }
-function unlockDemo() { state.unlocked = true; renderPage(); }
+async function unlockDemo() {
+  if (state.usuario) {
+    await atualizarPerfil();
+    if (await desbloquearHistoriaAtual()) return;
+  }
+  abrirLogin(false);
+}
+async function desbloquearHistoriaAtual() {
+  if (!state.story) return false;
+  const cupomOk = (function () { try { return localStorage.getItem("hds_cupom_ok") === "1"; } catch (e) { return false; } })();
+  if (state.usuario) await atualizarPerfil();
+  const pode = !!(state.assinante || (state.usuario && state.creditos > 0) || cupomOk);
+  if (!pode) return false;
+
+  if (state.usuario) {
+    if (!state.assinante && state.creditos > 0) await descontarCredito();
+    await salvarHistoria(state.story);
+    if (state_ultimaHistoriaId) {
+      try {
+        await sb.from("historias").update({ tem_narracao: true }).eq("id", state_ultimaHistoriaId);
+      } catch (e) {}
+    }
+  }
+
+  state.unlocked = true;
+  try { localStorage.removeItem("hds_preview"); } catch (e) {}
+  renderPage();
+  atualizarBarraNarracaoLivro();
+  document.getElementById("printBtn").hidden = false;
+  document.getElementById("cinemaBtn").hidden = false;
+  if (state.usuario && state_ultimaHistoriaId) {
+    abrirPlayer(state_ultimaHistoriaId, true);
+  }
+  return true;
+}
+
+async function narrarHistoriaCompletaVisitante() {
+  if (!state.story?.pages?.length) return;
+  const ov = document.getElementById("playerOverlay");
+  ov.hidden = false;
+  document.getElementById("playerTitulo").textContent = state.story.title || "Narração";
+  document.getElementById("playerStatus").textContent = "Gerando a narração completa...";
+  document.getElementById("playerBtns").innerHTML = "";
+  narracaoAudio = new Audio();
+  narracaoAudio.play().catch(() => {});
+  try {
+    const resp = await fetch("/api/narrar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        historiaId: "cupom-" + Date.now(),
+        paginas: state.story.pages
+      })
+    });
+    const r = await resp.json();
+    const src = r.url ? r.url : (r.audioBase64 ? base64ParaAudioURL(r.audioBase64) : null);
+    if (!src) throw new Error("sem áudio");
+    narracaoAudio.src = src;
+    document.getElementById("playerStatus").textContent = "▶ Tocando a história completa...";
+    iniciarTrilhaSuave();
+    narracaoAudio.play().catch(() => {});
+    narracaoAudio.onended = () => {
+      pararTrilhaSuave(true);
+      document.getElementById("playerStatus").textContent = "Crie uma conta para guardar no dashboard 🌙";
+      document.getElementById("playerBtns").innerHTML = `<button class="player-ctrl" onclick="fecharPlayer(); abrirLogin(false)">Entrar / criar conta</button>`;
+    };
+  } catch (e) {
+    document.getElementById("playerStatus").textContent = "História liberada. Entre na conta para guardar e ouvir de novo.";
+  }
+}
+
+async function aplicarCupom() {
+  const inp = document.getElementById("cupomInput");
+  const msg = document.getElementById("cupomMsg");
+  const codigo = (inp && inp.value || "").trim();
+  if (!codigo) { if (msg) msg.textContent = "Digite o cupom."; return; }
+  if (msg) msg.textContent = "Validando...";
+  try {
+    let token = "";
+    if (sb && state.usuario) {
+      const { data: { session } } = await sb.auth.getSession();
+      token = session ? session.access_token : "";
+    }
+    const resp = await fetch("/api/cupom", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: "Bearer " + token } : {})
+      },
+      body: JSON.stringify({ codigo })
+    });
+    const r = await resp.json().catch(() => ({}));
+    if (!resp.ok) { if (msg) msg.textContent = r.error || "Cupom inválido."; return; }
+    try { localStorage.setItem("hds_cupom_ok", "1"); } catch (e) {}
+    if (state.usuario) await atualizarPerfil();
+    const ok = await desbloquearHistoriaAtual();
+    if (!ok && !state.usuario) {
+      state.unlocked = true;
+      renderPage();
+      atualizarBarraNarracaoLivro();
+      document.getElementById("printBtn").hidden = false;
+      document.getElementById("cinemaBtn").hidden = false;
+      if (msg) msg.textContent = "Liberado! Gerando narração completa...";
+      narrarHistoriaCompletaVisitante();
+      return;
+    }
+    if (msg) msg.textContent = "História liberada ✨";
+  } catch (e) {
+    if (msg) msg.textContent = "Não consegui validar agora. Tente de novo.";
+  }
+}
 
 function iniciarAnimacaoFada() {
   clearInterval(loadingTimer);
@@ -2069,20 +2269,10 @@ function iniciarAnimacaoFada() {
 }
 
 async function generateStory() {
-  // 1) se não está logada: mostra a fada "criando..." e SÓ ENTÃO pede o cadastro
-  //    (a mãe vê a mágica começar → mais vontade de se cadastrar para receber)
-  if (!state.usuario) {
-    show("loading");
-    iniciarAnimacaoFada();
-    // deixa a expectativa crescer por ~2,2s, então abre o cadastro por cima
-    setTimeout(() => {
-      abrirLogin(true); // true = modo "receber história" (copy diferente)
-    }, 2200);
-    return;
-  }
-  // 2) precisa ter créditos (assinante ativo passa direto)
-  await atualizarPerfil();
-  if (!state.assinante && state.creditos <= 0) {
+  if (state.usuario) await atualizarPerfil();
+
+  // já usou o preview grátis e ainda não tem créditos → paywall antes de gerar outra
+  if (!podeGerarCompleta() && jaUsouPreviewGratis() && !state.story) {
     abrirOferta();
     return;
   }
@@ -2103,19 +2293,24 @@ async function generateStory() {
     const story = await response.json();
     if (!story.pages || story.pages.length < 4) throw new Error("história incompleta");
 
-    // 3) história criada com sucesso → desconta 1 crédito (assinante não desconta)
-    if (!state.assinante) {
-      await descontarCredito();
-    }
-
-    // 4) salva a história na estante da mãe (para aparecer no dashboard)
-    await salvarHistoria(story);
-
     state.story = story;
     state.page = 0;
-    state.unlocked = true; // história sempre completa (sem paywall no meio)
+
+    if (podeGerarCompleta()) {
+      if (!state.assinante) await descontarCredito();
+      await salvarHistoria(story);
+      state.unlocked = true;
+    } else {
+      state.unlocked = false;
+      salvarPreviewLocal(story);
+      marcarPreviewGratisUsado();
+    }
+
+    state.previewAudioBase64 = null;
+    state.previewAudioPronto = false;
     clearInterval(loadingTimer);
     openBook();
+    prepararNarracaoMetade();
   } catch (err) {
     clearInterval(loadingTimer);
     console.error(err);
@@ -2140,13 +2335,108 @@ function openBook() {
   document.getElementById("bookTitle").textContent = state.story.title;
   show("book");
   renderPage();
-  buildPrint();
+  if (temAcessoCompleto()) buildPrint();
+  atualizarBarraNarracaoLivro();
+}
+
+async function prepararNarracaoMetade() {
+  if (temAcessoCompleto() || !state.story?.pages?.length) return;
+  const bar = document.getElementById("bookNarrBar");
+  if (bar) bar.hidden = false;
+  atualizarBarraNarracaoLivro();
+  try {
+    const resp = await fetch("/api/narrar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        historiaId: "preview-" + Date.now(),
+        paginas: state.story.pages,
+        previa: true,
+        atePagina: paginasGratis()
+      })
+    });
+    if (!resp.ok) throw new Error("falha na narração");
+    const r = await resp.json();
+    if (!r.audioBase64) throw new Error("sem áudio");
+    state.previewAudioBase64 = r.audioBase64;
+    state.previewAudioPronto = true;
+  } catch (e) {
+    console.error("narracao metade", e);
+    state.previewAudioPronto = false;
+  }
+  atualizarBarraNarracaoLivro();
+}
+
+function atualizarBarraNarracaoLivro() {
+  const bar = document.getElementById("bookNarrBar");
+  const msg = document.getElementById("bookNarrMsg");
+  const btnHead = document.getElementById("narrarLivroBtn");
+  const btnBar = document.getElementById("bookNarrPlay");
+  const mostrar = state.story && !temAcessoCompleto() && !document.getElementById("book").hidden;
+  if (bar) bar.hidden = !mostrar;
+  if (btnHead) btnHead.hidden = !mostrar;
+  if (!mostrar) return;
+  const txt = state.previewAudioPronto
+    ? "Narração pronta — ouça até a metade ✨"
+    : "Preparando a narração até a metade...";
+  if (msg) msg.textContent = txt;
+  const label = state.previewAudioPronto ? "▶ Ouvir até aqui" : "⏳ Aguarde...";
+  if (btnBar) { btnBar.textContent = label; btnBar.disabled = !state.previewAudioPronto; }
+  if (btnHead) { btnHead.textContent = state.previewAudioPronto ? "🎧 Ouvir" : "⏳"; btnHead.disabled = !state.previewAudioPronto; }
+}
+
+function ouvirNarracaoLivro() {
+  if (!state.previewAudioBase64) return;
+  abrirPlayerPreviewLivro();
+}
+
+function abrirPlayerPreviewLivro() {
+  const ov = document.getElementById("playerOverlay");
+  ov.hidden = false;
+  document.getElementById("playerTitulo").textContent = state.story?.title || "Narração";
+  document.getElementById("playerStatus").textContent = "Preparando...";
+  document.getElementById("playerBtns").innerHTML = "";
+
+  narracaoAudio = new Audio();
+  narracaoAudio.play().catch(() => {});
+
+  narracaoAudio.src = base64ParaAudioURL(state.previewAudioBase64);
+  document.getElementById("playerStatus").textContent = "▶ Ouça até a metade...";
+
+  let confirmouPlay = false;
+  const vigia = setTimeout(() => {
+    if (!confirmouPlay) falhaPreviewLivro("A voz demorou para carregar.");
+  }, 8000);
+
+  narracaoAudio.onplaying = () => { confirmouPlay = true; clearTimeout(vigia); };
+  narracaoAudio.onerror = () => falhaPreviewLivro("Não consegui carregar o áudio.");
+
+  function falhaPreviewLivro(motivo) {
+    clearTimeout(vigia);
+    pararTrilhaSuave(false);
+    document.getElementById("playerStatus").textContent = "Ops, a voz não carregou. Tente de novo?";
+    document.getElementById("playerBtns").innerHTML = `
+      <button class="player-ctrl" onclick="abrirPlayerPreviewLivro()">🔄 Tentar de novo</button>
+      <button class="player-ctrl ghost" onclick="fecharPlayer()">Fechar</button>`;
+  }
+
+  iniciarTrilhaSuave();
+  narracaoAudio.play().catch(() => falhaPreviewLivro("O navegador bloqueou o áudio."));
+
+  narracaoAudio.onended = () => {
+    clearTimeout(vigia);
+    pararTrilhaSuave(true);
+    document.getElementById("playerStatus").textContent = "Gostou? Desbloqueie o final e a narração completa ✨";
+    document.getElementById("playerBtns").innerHTML = `
+      <button class="player-ctrl" onclick="goCheckout()">🔓 Ver planos e desbloquear</button>
+      <button class="player-ctrl ghost" onclick="fecharPlayer()">Fechar</button>`;
+  };
 }
 function totalScreens() { return state.story.pages.length + 1; } // capa + páginas
 let turning = false;
 
 function pageHTML(p) {
-  const lockedFrom = PAGINAS_GRATIS + 1;
+  const paywallIdx = indicePaywall();
   if (p === 0) {
     return `<div class="page-cover-full">
       <div class="cover-scene">${sceneSVG({ seed: 0, emojis: state.story.pages[0]?.emojis, closed: false, uid: "cv" })}</div>
@@ -2158,20 +2448,33 @@ function pageHTML(p) {
       </div>
     </div>`;
   }
-  if (!state.unlocked && p >= lockedFrom) {
+  if (!temAcessoCompleto() && p >= paywallIdx) {
+    const metade = paginasGratis();
     return `<div style="flex:1;overflow-y:auto;display:flex;align-items:center;background:linear-gradient(160deg,var(--night),var(--night-soft))">
-      <div class="paywall" style="margin:auto;box-shadow:none;border-radius:0;max-width:none">
+      <div class="paywall" style="margin:auto;box-shadow:none;border-radius:0;max-width:none;padding:28px 22px">
         <span class="lock-emoji">🔒✨</span>
         <h3>${esc(state.nome)} está no meio da aventura!</h3>
-        <p class="p-sub">Você leu o começo de graça. Desbloqueie a historinha completa e leia o final hoje à noite:</p>
+        <p class="p-sub">Você leu e ouviu ${metade} de ${state.story.pages.length} páginas de graça. Desbloqueie o final hoje à noite:</p>
         <ul>
           <li><span>✦</span><span>As ${state.story.pages.length} páginas completas, com o final feito para dar sono</span></li>
-          <li><span>✦</span><span>PDF ilustrado para imprimir e guardar de lembrança</span></li>
-          <li><span>✦</span><span>Garantia de 7 dias — não sorriu, devolvemos</span></li>
+          <li><span>✦</span><span>Narração completa do início ao fim</span></li>
+          <li><span>✦</span><span>PDF ilustrado para imprimir e guardar</span></li>
         </ul>
-        <div class="price-line">${PRECO} <small>· pagamento único</small></div>
-        <button class="btn-primary" style="width:100%" onclick="goCheckout()">Desbloquear a historinha completa ✨</button>
-        <button class="demo-link" onclick="unlockDemo()">Já paguei / testar desbloqueio</button>
+        <div class="oferta-mini">
+          <div>
+            <div class="mini-tag">Mais popular</div>
+            <button class="btn-primary" onclick="irCheckout('assinatura')">Assinar — R$ 29/mês · 15 histórias</button>
+          </div>
+          <div>
+            <button class="btn-small" style="width:100%" onclick="irCheckout('pacote')">Pacote avulso — R$ 34,90 · 5 histórias</button>
+          </div>
+        </div>
+        <div class="cupom-row">
+          <input id="cupomInput" placeholder="Cupom" autocomplete="off">
+          <button class="btn-small" type="button" onclick="aplicarCupom()">Aplicar</button>
+        </div>
+        <div class="cupom-msg" id="cupomMsg"></div>
+        <button class="demo-link" onclick="unlockDemo()">Já paguei — entrar na minha conta</button>
       </div>
     </div>`;
   }
@@ -2188,9 +2491,9 @@ function renderPage(turnDir) {
   const sheet = document.getElementById("bookSheet");
   const p = state.page;
   const total = totalScreens();
-  const lockedFrom = PAGINAS_GRATIS + 1;
-  const atPaywall = !state.unlocked && p >= lockedFrom;
-  const showHint = p === 0; // dica de toque só na capa
+  const paywallIdx = indicePaywall();
+  const atPaywall = !temAcessoCompleto() && p >= paywallIdx;
+  const showHint = p === 0;
 
   const card = document.createElement("div");
   card.className = "page-card";
@@ -2225,11 +2528,12 @@ function renderPage(turnDir) {
   document.getElementById("prevBtn").disabled = p === 0;
   document.getElementById("nextBtn").disabled = atPaywall || p === total - 1;
   document.getElementById("pageDots").innerHTML = Array.from({ length: total }, (_, i) => {
-    const locked = !state.unlocked && i >= lockedFrom;
+    const locked = !temAcessoCompleto() && i >= paywallIdx;
     return `<div class="dot ${i === p ? "on" : ""} ${locked ? "lock" : ""}"></div>`;
   }).join("");
-  document.getElementById("printBtn").hidden = true;
-  document.getElementById("cinemaBtn").hidden = true;
+  document.getElementById("printBtn").hidden = !temAcessoCompleto();
+  document.getElementById("cinemaBtn").hidden = !temAcessoCompleto();
+  atualizarBarraNarracaoLivro();
 
   // última página: mostra o convite para o dashboard/oferta (momento de conversão)
   const nav = document.getElementById("bookNav");
@@ -2266,10 +2570,10 @@ function compartilharWhatsApp() {
 function turnPage(d) {
   if (turning) return;
   const total = totalScreens();
-  const lockedFrom = PAGINAS_GRATIS + 1;
+  const paywallIdx = indicePaywall();
   let next = state.page + d;
   if (next < 0 || next > total - 1) return;
-  if (!state.unlocked && next > lockedFrom) next = lockedFrom;
+  if (!temAcessoCompleto() && next > paywallIdx) next = paywallIdx;
   if (next === state.page) return;
   const dir = next > state.page ? 1 : -1;
   turning = true;
@@ -2333,18 +2637,22 @@ function startCinema() {
   overlay.hidden = false;
   overlay.classList.remove("cinema-paused");
   document.getElementById("cinemaPause").textContent = "⏸";
-  // monta a barra de progresso (uma por página)
-  const total = state.story.pages.length;
+  const limite = temAcessoCompleto() ? state.story.pages.length : paginasGratis();
   document.getElementById("cinemaProgress").innerHTML =
-    Array.from({ length: total }, () => `<div class="seg"><div class="fill"></div></div>`).join("");
+    Array.from({ length: limite }, () => `<div class="seg"><div class="fill"></div></div>`).join("");
   cinemaShow(0);
 }
 
 function cinemaShow(i) {
-  const total = state.story.pages.length;
-  if (i >= total) { cinemaEnd(); return; }
+  const limite = temAcessoCompleto() ? state.story.pages.length : paginasGratis();
+  if (i >= limite) {
+    if (!temAcessoCompleto()) { stopCinema(); abrirOferta(); return; }
+    cinemaEnd();
+    return;
+  }
   cinemaState.idx = i;
   const pg = state.story.pages[i];
+  const total = state.story.pages.length;
   const sleepy = i >= total - 2;
 
   // cena com efeito ken burns (zoom lento)
@@ -2433,6 +2741,7 @@ function limparPDF(txt) {
 }
 
 async function baixarPDF() {
+  if (!temAcessoCompleto()) { abrirOferta(); return; }
   const btn = document.getElementById("printBtn");
   const original = btn.textContent;
   btn.textContent = "Gerando... ⏳";

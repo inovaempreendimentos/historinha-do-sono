@@ -27,11 +27,19 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Faltam dados da história." });
     }
 
-    // ---- MODO PRÉVIA: gera só um trechinho (primeira página), não guarda em cache ----
-    // é barato (uma fração do custo da narração completa) e serve pra mãe
-    // ouvir "como fica" antes de comprar a versão inteira.
+    // ---- MODO PRÉVIA: trecho curto (dashboard) ou até metade da história (funil grátis) ----
     if (previa) {
-      const trecho = limparTexto(paginas[0].text).split(" ").slice(0, 28).join(" ");
+      const atePagina = parseInt(req.body.atePagina, 10);
+      let trecho;
+      if (atePagina > 0) {
+        const limite = Math.min(atePagina, paginas.length);
+        trecho = paginas
+          .slice(0, limite)
+          .map(p => limparTexto(p.text))
+          .join("\n\n... ");
+      } else {
+        trecho = limparTexto(paginas[0].text).split(" ").slice(0, 28).join(" ");
+      }
       const ttsResp = await fetch("https://api.openai.com/v1/audio/speech", {
         method: "POST",
         headers: { Authorization: "Bearer " + OPENAI_KEY, "Content-Type": "application/json" },
