@@ -37,32 +37,25 @@ export default async function handler(req, res) {
         const audios = await Promise.all(fatia.map(async (p) => {
           const trecho = limparTexto(p.text || p.texto || p.content || "");
           if (!trecho) return null;
-          const ttsResp = await fetch("https://api.openai.com/v1/audio/speech", {
-            method: "POST",
-            headers: { Authorization: "Bearer " + OPENAI_KEY, "Content-Type": "application/json" },
-            body: JSON.stringify({ model: "tts-1", voice: "nova", input: trecho, speed: 0.68 })
-          });
-          if (!ttsResp.ok) return null;
-          const buf = Buffer.from(await ttsResp.arrayBuffer());
-          return buf.toString("base64");
+          try {
+            const buf = await gerarFala(OPENAI_KEY, trecho);
+            return buf.toString("base64");
+          } catch (e) {
+            console.error("TTS página", e);
+            return null;
+          }
         }));
         if (!audios.some(Boolean)) return res.status(502).json({ error: "Falha ao gerar áudios." });
         return res.status(200).json({ audios, previa: true });
       }
 
       const trecho = fatia.map(p => limparTexto(p.text || p.texto || "")).join("\n\n... ");
-      const ttsResp = await fetch("https://api.openai.com/v1/audio/speech", {
-        method: "POST",
-        headers: { Authorization: "Bearer " + OPENAI_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "tts-1", voice: "nova", input: trecho, speed: 0.68 })
-      });
-      if (!ttsResp.ok) return res.status(502).json({ error: "Falha ao gerar prévia." });
-      const buf = Buffer.from(await ttsResp.arrayBuffer());
+      const buf = await gerarFala(OPENAI_KEY, trecho);
       return res.status(200).json({ audioBase64: buf.toString("base64"), previa: true });
     }
 
     // 1) se já existe o áudio guardado, só devolve a URL (não gera de novo)
-    const nomeArquivo = `narracao-${historiaId}.mp3`;
+    const nomeArquivo = `narracao-v2-${historiaId}.mp3`;
     const urlPublica = `${SUPABASE_URL}/storage/v1/object/public/narracoes/${nomeArquivo}`;
     const jaExiste = await fetch(urlPublica, { method: "HEAD" });
     if (jaExiste.ok) {
@@ -74,28 +67,7 @@ export default async function handler(req, res) {
       .map(p => limparTexto(p.text))
       .join("\n\n... ");  // as reticências criam uma pausa natural entre páginas
 
-    // 3) gera o áudio com a OpenAI (voz "nova" — suave e acolhedora)
-    const ttsResp = await fetch("https://api.openai.com/v1/audio/speech", {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer " + OPENAI_KEY,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "tts-1",
-        voice: "nova",          // voz feminina suave; boa para ninar
-        input: texto,
-        speed: 0.68             // bem lenta, tom de ninar
-      })
-    });
-
-    if (!ttsResp.ok) {
-      const err = await ttsResp.text();
-      console.error("OpenAI TTS erro:", err);
-      return res.status(502).json({ error: "Falha ao gerar o áudio." });
-    }
-
-    const audioBuffer = Buffer.from(await ttsResp.arrayBuffer());
+    const audioBuffer = await gerarFala(OPENAI_KEY, texto);
 
     // 4) guarda no Supabase Storage (bucket "narracoes")
     const upload = await fetch(
@@ -141,8 +113,40 @@ export default async function handler(req, res) {
   }
 }
 
-// remove emojis do texto (a voz não deve "ler" emoji)
-function limparTexto(txt) {
+const INSTRUCAO_NINAR = `Você é uma contadora de histórias infantis brasileira, à beira da cama.
+Fale em português do Brasil, com carinho, voz baixa e pausas naturais.
+Não soe como locutora de GPS nem como tradutor automático.
+Tom quente, um pouco lento, como quem está ninando uma criança.`;
+
+async function gerarFala(apiKey, texto) {
+  const tts = await fetch("https://api.openai.com/v1/audio/speech", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "gpt-4o-mini-tts",
+      voice: "coral",
+      input: texto,
+      instructions: INSTRUCAO_NINAR
+    })
+  });
+  if (tts.ok) return Buffer.from(await tts.arrayBuffer());
+
+  const fallback = await fetch("https://api.openai.com/v1/audio/speech", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "tts-1-hd",
+      voice: "nova",
+      input: texto,
+      speed: 0.88
+    })
+  });
+  if (!fallback.ok) {
+    const err = await fallback.text();
+    throw new Error(err || "Falha no TTS");
+  }
+  return Buffer.from(await fallback.arrayBuffer());
+}
   return String(txt)
     .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}\u{200D}]/gu, "")
     .replace(/\s{2,}/g, " ")
