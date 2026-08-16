@@ -419,7 +419,10 @@ footer{background:var(--night-deep);text-align:center;padding:40px 24px;font-siz
 .trilha-emoji{font-size:1.8rem}
 .trilha-nome{font-weight:800;color:var(--paper);font-size:.92rem}
 .trilha-desc{font-size:.74rem;color:var(--lilac);font-weight:600;line-height:1.3}
-.dash-assine{background:linear-gradient(160deg,rgba(255,217,142,.12),rgba(184,167,232,.1));border:1.5px solid rgba(255,217,142,.35);border-radius:20px;padding:28px 24px;text-align:center;margin-top:36px}
+.dash-vozes{display:flex;gap:10px;justify-content:center;margin:8px 0 28px;flex-wrap:wrap}
+.voz-btn{background:rgba(255,249,239,.06);border:1.5px solid rgba(255,249,239,.2);color:var(--paper);border-radius:16px;padding:12px 18px;font-weight:800;font-family:inherit;cursor:pointer;min-width:140px}
+.voz-btn.sel{border-color:var(--moon);background:rgba(255,217,142,.14);color:var(--moon)}
+.voz-btn small{display:block;font-weight:600;font-size:.72rem;color:var(--lilac);margin-top:4px}
 .dash-assine h3{font-family:'Fraunces',serif;font-size:1.3rem;color:var(--moon);margin-bottom:8px}
 .dash-assine p{color:rgba(255,249,239,.85);font-size:.92rem;margin-bottom:18px;max-width:420px;margin-left:auto;margin-right:auto}
 
@@ -1263,13 +1266,19 @@ async function checarSessaoInicial() {
     state.usuario = session.user;
     await atualizarPerfil();
     try {
-      if (localStorage.getItem("hds_preview") && (state.assinante || state.creditos > 0)) {
+      if (localStorage.getItem("hds_preview")) {
         restaurarPreviewLocal();
-        if (await desbloquearHistoriaAtual()) {
-          atualizarBotaoConta();
-          show("book");
-          return;
+        if (state.assinante || state.creditos > 0) {
+          if (await desbloquearHistoriaAtual()) {
+            atualizarBotaoConta();
+            abrirDash();
+            return;
+          }
         }
+        if (state.story) await salvarHistoria(state.story);
+        atualizarBotaoConta();
+        abrirDash();
+        return;
       }
     } catch (e) {}
     // se voltou do Google no meio de uma criação, restaura os dados e retoma
@@ -1417,6 +1426,26 @@ async function listarHistorias() {
 }
 
 /* ---- trilhas de temas (levam a criar história trabalhando um valor) ---- */
+const VOZES = {
+  feminina: { id: "coral", titulo: "Feminina", desc: "coral · ninar" },
+  masculina: { id: "ash", titulo: "Masculina", desc: "ash · ninar" }
+};
+function vozSalva() {
+  try { return localStorage.getItem("hds_voz") === "masculina" ? "masculina" : "feminina"; }
+  catch (e) { return "feminina"; }
+}
+function idVozApi() { return VOZES[vozSalva()].id; }
+function escolherVoz(qual) {
+  try { localStorage.setItem("hds_voz", qual); } catch (e) {}
+  state.cinemaAudios = [];
+  state.cinemaPronto = false;
+  if (state.usuario) abrirDash();
+}
+
+function corpoNarrar(extra) {
+  return JSON.stringify(Object.assign({ voz: idVozApi() }, extra));
+}
+
 const TRILHAS = [
   { id: "coragem", nome: "Coragem", emoji: "🦁", cor: "#F5A3B7", desc: "para enfrentar medos e desafios" },
   { id: "confianca", nome: "Autoconfiança", emoji: "✨", cor: "#FFD98E", desc: "para acreditar em si mesmo" },
@@ -1466,6 +1495,16 @@ function renderDash(historias) {
       </div>`).join("");
     html += `</div>`;
   }
+
+  html += `<h3 class="dash-sec">Voz da narração</h3>
+    <p class="dash-sub-sec">Escolha quem conta a historinha — sempre em português, tom de ninar</p>
+    <div class="dash-vozes">
+      ${Object.keys(VOZES).map(k => `
+        <button class="voz-btn ${vozSalva() === k ? "sel" : ""}" onclick="escolherVoz('${k}')">
+          ${VOZES[k].titulo}
+          <small>${VOZES[k].desc}</small>
+        </button>`).join("")}
+    </div>`;
 
   // trilhas de temas
   html += `<h3 class="dash-sec">Crie trabalhando um valor no seu filho</h3>
@@ -1622,7 +1661,7 @@ async function ouvirPrevia(id) {
     const resp = await fetch("/api/narrar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ historiaId: id, paginas: data.paginas, previa: true })
+      body: JSON.stringify({ historiaId: id, paginas: data.paginas, previa: true, voz: idVozApi() })
     });
     if (!resp.ok) throw new Error("falha na prévia (resposta do servidor)");
     const r = await resp.json();
@@ -1721,7 +1760,7 @@ async function gerarOuTocar(id, celebrar) {
     const resp = await fetch("/api/narrar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ historiaId: id, paginas: data.paginas })
+      body: JSON.stringify({ historiaId: id, paginas: data.paginas, voz: idVozApi() })
     });
     if (!resp.ok) throw new Error("falha ao gerar áudio");
     const r = await resp.json();
@@ -1939,9 +1978,11 @@ async function abrirHistoriaSalva(id) {
     state.story = { title: data.titulo, dedication: "", pages: data.paginas };
     state.nome = data.nome_crianca;
     if (data.avatar) state.avatar = data.avatar;
-    state.page = 0; state.unlocked = true;
+    state.page = 0;
+    state.unlocked = !!(state.assinante || state.creditos > 0);
     document.getElementById("dashOverlay").hidden = true;
     openBook();
+    if (!state.unlocked) prepararAudiosCinema();
   }
 }
 
@@ -1977,8 +2018,7 @@ function abrirLogin(receber) {
 }
 function fecharLogin() {
   document.getElementById("authOverlay").hidden = true;
-  // se fechou a tela sem logar durante a criação, volta pra landing (a fada estava rodando)
-  if (authReceber && !state.usuario) { clearInterval(loadingTimer); show("landing"); }
+  if (authReceber && !state.usuario && !state.story) { clearInterval(loadingTimer); show("landing"); }
   authReceber = false;
 }
 
@@ -1988,7 +2028,7 @@ function toggleAuthModo() { authModo = authModo === "login" ? "cadastro" : "logi
 function renderAuth() {
   const box = document.getElementById("authBox");
   const ehLogin = authModo === "login";
-  const subReceber = `A historinha de <strong>${esc(state.nome || "seu filho")}</strong> está quase pronta! ✨<br>Crie sua conta grátis para receber e ler agora:`;
+  const subReceber = `Guarde a historinha de <strong>${esc(state.nome || "seu filho")}</strong> e veja outras ideias para criar ✨<br>Crie sua conta grátis:`;
   const subNormal = ehLogin ? "Entre para criar a historinha do seu filho" : "Crie sua conta e ganhe 1 história grátis 🎁";
   box.innerHTML = `
     <button class="auth-close" onclick="fecharLogin()" aria-label="Fechar">✕</button>
@@ -2030,8 +2070,14 @@ async function submitAuth() {
     await atualizarPerfil();
     authReceber = false;
     document.getElementById("authOverlay").hidden = true;
-    if (state.story && !temAcessoCompleto()) {
-      if (await desbloquearHistoriaAtual()) return;
+    if (state.story) {
+      if (state.assinante || state.creditos > 0) {
+        await desbloquearHistoriaAtual();
+      } else if (!state_ultimaHistoriaId) {
+        await salvarHistoria(state.story);
+      }
+      abrirDash();
+      return;
     }
     if (state.nome && state.tema && !state.story) { generateStory(); return; }
     // login "normal" (não no meio de criar história): entrega a sessão
@@ -2213,7 +2259,8 @@ async function narrarHistoriaCompletaVisitante() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         historiaId: "cupom-" + Date.now(),
-        paginas: state.story.pages
+        paginas: state.story.pages,
+        voz: idVozApi()
       })
     });
     const r = await resp.json();
@@ -2377,7 +2424,8 @@ async function prepararAudiosCinema() {
         paginas: state.story.pages,
         previa: true,
         porPagina: true,
-        atePagina: limite
+        atePagina: limite,
+        voz: idVozApi()
       })
     });
     if (!resp.ok) throw new Error("falha na narração");
@@ -2533,14 +2581,14 @@ function renderPage(turnDir) {
   // última página: mostra o convite para o dashboard/oferta (momento de conversão)
   const nav = document.getElementById("bookNav");
   let cta = document.getElementById("bookEndCta");
-  if (p === total - 1) {
+  if (p === total - 1 || atPaywall) {
     if (!cta) {
       cta = document.createElement("div");
       cta.id = "bookEndCta";
       cta.className = "book-end-cta";
       nav.parentNode.insertBefore(cta, nav.nextSibling);
     }
-    cta.innerHTML = `<button class="btn-primary" onclick="fimDaHistoria()">✨ Ver o que preparei para vocês</button>
+    cta.innerHTML = `<button class="btn-primary" onclick="fimDaHistoria()">✨ Ver minhas historinhas</button>
       <button class="book-share" onclick="compartilharWhatsApp()">💌 Compartilhar com quem ama ${esc(state.nome || "ele")}</button>`;
     cta.style.display = "block";
   } else if (cta) {
@@ -2550,8 +2598,15 @@ function renderPage(turnDir) {
 
 /* ao terminar a história, leva ao dashboard (onde mora a oferta) */
 function fimDaHistoria() {
-  if (state.usuario) { abrirDash(); }
-  else { show("landing"); }
+  if (state.usuario) { irParaDashboardComHistoria(); return; }
+  abrirLogin(true);
+}
+
+async function irParaDashboardComHistoria() {
+  if (state.story && state.usuario) {
+    if (!state_ultimaHistoriaId) await salvarHistoria(state.story);
+  }
+  abrirDash();
 }
 
 /* compartilhar no momento de maior emoção — semente de crescimento orgânico */
@@ -2595,8 +2650,8 @@ document.addEventListener("keydown", e => {
 })();
 
 function closeBook() {
-  // se está logada, volta para o dashboard (não para a landing) — é o "destino" dela
   if (state.usuario) { abrirDash(); }
+  else if (state.story) { fimDaHistoria(); }
   else { show("landing"); }
 }
 
