@@ -17,7 +17,7 @@ const OFERTA_ASSINATURA = "baee13d4-4b07-432a-8d1b-26ad1e64a515";
 const OFERTA_PACOTE     = "b95a04be-5c48-4f14-a9c1-3dd5d587b39e";
 const OFERTA_NARRACAO   = "ef28e79f-c76d-40f6-a503-dc252129940d";
 
-const CREDITOS_PACOTE     = 5;   // pacote dá 5 histórias
+const CREDITOS_PACOTE     = 10;  // pacote dá 10 histórias
 const CREDITOS_ASSINATURA = 15;  // assinatura dá 15 por mês
 
 export default async function handler(req, res) {

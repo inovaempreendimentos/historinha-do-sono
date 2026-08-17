@@ -675,9 +675,10 @@ footer{background:var(--night-deep);text-align:center;padding:40px 24px;font-siz
     <div class="oferta-card">
       <div class="oferta-tag">Mais popular</div>
       <h4>Assinatura Mensal</h4>
-      <div class="oferta-preco">R$ 29<small>/m&ecirc;s</small></div>
+      <div class="oferta-preco">R$ 49,90<small>/m&ecirc;s</small></div>
       <ul>
         <li>&#10022; 15 hist&oacute;rias por m&ecirc;s</li>
+        <li>&#10022; Cineminha com voz e musiquinha em todas</li>
         <li>&#10022; Narra&ccedil;&atilde;o premium inclusa</li>
         <li>&#10022; Cada uma trabalha um valor no seu filho</li>
       </ul>
@@ -685,9 +686,10 @@ footer{background:var(--night-deep);text-align:center;padding:40px 24px;font-siz
     </div>
     <div class="oferta-card alt">
       <h4>Pacote Avulso</h4>
-      <div class="oferta-preco">R$ 34,90</div>
+      <div class="oferta-preco">R$ 97</div>
       <ul>
-        <li>&#10022; 5 hist&oacute;rias personalizadas</li>
+        <li>&#10022; 10 hist&oacute;rias personalizadas</li>
+        <li>&#10022; Cineminha em todas as hist&oacute;rias</li>
         <li>&#10022; Narra&ccedil;&atilde;o premium de todas</li>
         <li>&#10022; Sem mensalidade</li>
       </ul>
@@ -2777,16 +2779,17 @@ function pageHTML(p) {
         <p class="p-sub">Você leu e ouviu ${metade} de ${state.story.pages.length} páginas de graça. Desbloqueie o final hoje à noite:</p>
         <ul>
           <li><span>✦</span><span>As ${state.story.pages.length} páginas completas, com o final feito para dar sono</span></li>
+          <li><span>✦</span><span>Cineminha com voz e musiquinha em todas as histórias do plano</span></li>
           <li><span>✦</span><span>Narração completa do início ao fim</span></li>
           <li><span>✦</span><span>PDF ilustrado para imprimir e guardar</span></li>
         </ul>
         <div class="oferta-mini">
           <div>
             <div class="mini-tag">Mais popular</div>
-            <button class="btn-primary" onclick="irCheckout('assinatura')">Assinar — R$ 29/mês · 15 histórias</button>
+            <button class="btn-primary" onclick="irCheckout('assinatura')">Assinar — R$ 49,90/mês · 15 histórias</button>
           </div>
           <div>
-            <button class="btn-small" style="width:100%" onclick="irCheckout('pacote')">Pacote avulso — R$ 34,90 · 5 histórias</button>
+            <button class="btn-small" style="width:100%" onclick="irCheckout('pacote')">Pacote avulso — R$ 97 · 10 histórias</button>
           </div>
         </div>
         <div class="cupom-row">
