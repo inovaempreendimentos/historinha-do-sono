@@ -2171,8 +2171,8 @@ function iniciarMusicaFundo(tipo) {
     master.gain.value = 1;
     trilhaGain.connect(master);
     master.connect(trilhaCtx.destination);
-    // fade-in bem suave pra não assustar
-    trilhaGain.gain.linearRampToValueAtTime(tipo === "chuva" || tipo === "oceano" ? 0.07 : 0.05, trilhaCtx.currentTime + 1.8);
+    // fade-in suave; um pouco mais alto pra acompanhar a narração sem cobrir a voz
+    trilhaGain.gain.linearRampToValueAtTime(tipo === "chuva" || tipo === "oceano" ? 0.12 : 0.09, trilhaCtx.currentTime + 1.8);
 
     if (tipo === "caixinha") trilhaCaixinha();
     else if (tipo === "chuva") trilhaChuva();
@@ -2596,6 +2596,20 @@ async function submitAuth() {
   const { data: { session } } = await sb.auth.getSession();
   if (session) {
     state.usuario = session.user;
+    // cadastro novo = 0 crédito (metade grátis); crédito só vem de compra/cupom
+    if (authModo === "cadastro") {
+      try {
+        await sb.from("perfis").update({
+          creditos: 0,
+          assinante: false,
+          plano: "gratis",
+          atualizado_em: new Date().toISOString()
+        }).eq("id", state.usuario.id);
+        state.creditos = 0;
+        state.assinante = false;
+        state.plano = "gratis";
+      } catch (e) {}
+    }
     if (whats) await guardarWhatsApp(whats);
     await aposLoginSucesso();
   } else if (authModo === "cadastro") {
