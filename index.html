@@ -1416,13 +1416,9 @@ async function checarSessaoInicial() {
   if (session) {
     state.usuario = session.user;
     await atualizarPerfil();
+    if (await tentarLiberarPagamento()) return;
     await zerarCreditosSeContaNova();
     if (await retomarFunilAposAuth()) return;
-    try {
-      if (localStorage.getItem("hds_aguardando_pagamento") === "1") {
-        if (await finalizarAposPagamento()) return;
-      }
-    } catch (e) {}
     try {
       const historiaComprada = localStorage.getItem("hds_narrar_historia");
       if (historiaComprada) {
@@ -1451,6 +1447,15 @@ async function checarSessaoInicial() {
 
 async function atualizarPerfil() {
   if (!state.usuario) return;
+  try {
+    const email = (state.usuario.email || "").toLowerCase().trim();
+    if (email) {
+      await sb.from("perfis").update({
+        email,
+        atualizado_em: new Date().toISOString()
+      }).eq("id", state.usuario.id);
+    }
+  } catch (e) {}
   await aplicarPagamentosPendentes();
   const { data, error } = await sb
     .from("perfis").select("creditos, assinante, plano").eq("id", state.usuario.id).single();
@@ -1466,9 +1471,9 @@ async function atualizarPerfil() {
 async function zerarCreditosSeContaNova() {
   if (!state.usuario || !sb) return;
   if (state.assinante) return;
+  try { if (localStorage.getItem("hds_aguardando_pagamento") === "1") return; } catch (e) {}
   const criado = Date.parse(state.usuario.created_at || "") || 0;
   if (!criado || Date.now() - criado > 15 * 60 * 1000) return;
-  // só o default antigo de 1 crédito; não mexe se já comprou (2+)
   if ((state.creditos || 0) !== 1) return;
   try {
     await sb.from("perfis").update({
@@ -2740,6 +2745,17 @@ function abrirCheckoutLogado(qual) {
   window.open(OFERTAS[qual], "_blank");
 }
 
+async function tentarLiberarPagamento() {
+  try {
+    if (localStorage.getItem("hds_aguardando_pagamento") !== "1") return false;
+  } catch (e) { return false; }
+  for (let i = 0; i < 6; i++) {
+    if (await finalizarAposPagamento()) return true;
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  return false;
+}
+
 async function finalizarAposPagamento() {
   if (!state.usuario) {
     abrirLogin(true, "pos_pagamento");
@@ -2748,6 +2764,8 @@ async function finalizarAposPagamento() {
   await atualizarPerfil();
   if (!(state.assinante || state.creditos > 0)) return false;
   try { localStorage.removeItem("hds_aguardando_pagamento"); } catch (e) {}
+  const oferta = document.getElementById("ofertaOverlay");
+  if (oferta) oferta.hidden = true;
   if (state.story && !state.unlocked) await desbloquearHistoriaAtual();
   await guardarHistoriaNaConta();
   abrirDash();
@@ -3629,7 +3647,7 @@ document.addEventListener("visibilitychange", async () => {
   // voltou do Kirvano depois de pagar → libera e manda pro dashboard
   try {
     if (localStorage.getItem("hds_aguardando_pagamento") === "1") {
-      if (await finalizarAposPagamento()) return;
+      if (await tentarLiberarPagamento()) return;
     }
   } catch (e) {}
   // acabou de comprar uma narração nessa mesma aba? confirma e toca automaticamente

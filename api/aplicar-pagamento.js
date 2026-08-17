@@ -55,6 +55,7 @@ export default async function handler(req, res) {
       creditos,
       assinante,
       plano: assinante ? "assinante" : undefined,
+      email,
       atualizado_em: new Date().toISOString()
     };
     if (!update.plano) delete update.plano;
