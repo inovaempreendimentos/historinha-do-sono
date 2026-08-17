@@ -1417,15 +1417,36 @@ async function checarSessaoInicial() {
     await atualizarPerfil();
     await zerarCreditosSeContaNova();
 
-    // prioridade: voltou do Google/cadastro no meio de criar a historinha
+    // prioridade: voltou do Google depois da fada — mostrar a historinha
     try {
       const q = lerQuizLocal();
       if (q && q.authAcao) setAuthPosAcao(q.authAcao);
-      const acaoGerar = lerAuthPosAcao();
+      const acao = lerAuthPosAcao();
+      if (!state.story) restaurarPreviewLocal();
+      if (!state.story && q && q.story && q.story.pages) {
+        state.story = q.story;
+        state.unlocked = !!q.unlocked;
+        Object.assign(state, {
+          nome: q.nome || state.nome || "", idade: q.idade || "", genero: q.genero || "",
+          tema: q.tema || "", licao: q.licao || "", detalhe: q.detalhe || "",
+          leitor: q.leitor || ""
+        });
+        if (q.avatar) state.avatar = q.avatar;
+      }
+      if ((acao === "ver" || (!!state.story && !state.unlocked)) && state.story) {
+        limparQuizLocal();
+        limparAuthPosAcao();
+        if (state.assinante || state.creditos > 0) await desbloquearHistoriaAtual();
+        else state.unlocked = false;
+        atualizarBotaoConta();
+        openBook();
+        prepararAudiosCinema();
+        return;
+      }
       const temDados = !!(
         (q && q.nome && q.tema) || (state.nome && state.tema)
       );
-      const querGerarAgora = acaoGerar === "gerar" || !!(q && q.querGerar && temDados && !(q && q.story));
+      const querGerarAgora = acao === "gerar" || !!(q && q.querGerar && temDados && !(q && q.story));
       if (querGerarAgora && temDados) {
         if (q) {
           Object.assign(state, {
@@ -1438,16 +1459,15 @@ async function checarSessaoInicial() {
         }
         limparQuizLocal();
         limparAuthPosAcao();
-        try { localStorage.removeItem("hds_preview"); } catch (e) {}
         atualizarBotaoConta();
         if (state.nome && state.tema) { generateStory(); return; }
         startQuiz();
         return;
       }
-      if (acaoGerar.startsWith("checkout:")) {
+      if (acao.startsWith("checkout:")) {
         limparQuizLocal();
         limparAuthPosAcao();
-        abrirCheckoutLogado(acaoGerar.split(":")[1] || "pacote");
+        abrirCheckoutLogado(acao.split(":")[1] || "pacote");
         return;
       }
     } catch (e) {}
@@ -1480,7 +1500,6 @@ async function checarSessaoInicial() {
         limparAuthPosAcao();
         if (state.assinante || state.creditos > 0) await desbloquearHistoriaAtual();
         if (!state.unlocked) {
-          show("book");
           openBook();
           prepararAudiosCinema();
           return;
@@ -1786,6 +1805,11 @@ function temaEmoji(tema) {
 
 /* nova história a partir do dashboard: pergunta PARA QUEM primeiro */
 async function novaHistoria() {
+  if (state.usuario) await atualizarPerfil();
+  if (!podeGerarCompleta() && jaUsouPreviewGratis()) {
+    abrirOferta();
+    return;
+  }
   state.licaoPreEscolhida = "";
   abrirEscolhaCrianca();
 }
@@ -2387,7 +2411,7 @@ function atualizarBotaoConta() {
 
 /* ---- tela de login (overlay) ---- */
 let authReceber = false; // true quando aberto no meio da criação (fada já rodando)
-let authPosAcao = null;  // "gerar" | "checkout:assinatura" | "checkout:pacote" | "pos_pagamento"
+let authPosAcao = null;  // "gerar" | "ver" | "checkout:assinatura" | "checkout:pacote" | "pos_pagamento"
 
 function setAuthPosAcao(acao) {
   authPosAcao = acao || null;
@@ -2411,6 +2435,11 @@ function abrirLogin(receber, acao) {
 }
 function fecharLogin() {
   document.getElementById("authOverlay").hidden = true;
+  // história já pronta: se fechar sem cadastrar, mantém o pedido de conta
+  if (authReceber && !state.usuario && state.story) {
+    authReceber = false;
+    return;
+  }
   if (authReceber && !state.usuario && !state.story) { clearInterval(loadingTimer); show("landing"); }
   authReceber = false;
 }
@@ -2456,7 +2485,7 @@ function renderAuth() {
   }
 
   const ehLogin = authModo === "login";
-  const pedindoLead = !!(authReceber || acao === "gerar");
+  const pedindoLead = !!(authReceber || acao === "gerar" || acao === "ver");
   let sub;
   if (acao.startsWith("checkout:")) {
     sub = "Antes de pagar, crie sua conta com o <strong>mesmo e-mail</strong> do checkout.<br>Assim o pacote cai direto no seu dashboard ✨";
@@ -2555,6 +2584,7 @@ async function aposLoginSucesso() {
     }
     if (quiz.authAcao && !lerAuthPosAcao()) setAuthPosAcao(quiz.authAcao);
   }
+  if (!state.story) restaurarPreviewLocal();
 
   const acao = lerAuthPosAcao();
   limparAuthPosAcao();
@@ -2565,9 +2595,21 @@ async function aposLoginSucesso() {
     return;
   }
 
+  // cadastrou depois da fada: mostra a metade da historinha
+  if (acao === "ver" || (state.story && !state.unlocked && acao !== "pos_pagamento")) {
+    limparQuizLocal();
+    if (state.assinante || state.creditos > 0 || localStorage.getItem("hds_cupom_ok") === "1") {
+      await desbloquearHistoriaAtual();
+    } else {
+      state.unlocked = false;
+    }
+    openBook();
+    prepararAudiosCinema();
+    return;
+  }
+
   if (acao === "gerar" || (state.nome && state.tema && !state.story)) {
     limparQuizLocal();
-    try { localStorage.removeItem("hds_preview"); } catch (e) {}
     generateStory();
     return;
   }
@@ -2582,7 +2624,6 @@ async function aposLoginSucesso() {
       return;
     }
     if (state.story) {
-      show("book");
       openBook();
       prepararAudiosCinema();
       return;
@@ -2602,7 +2643,7 @@ async function submitAuth() {
   const whatsEl = document.getElementById("authWhats");
   const whats = whatsEl ? normalizarWhats(whatsEl.value) : "";
   if (!email || !senha) { authMsg("Preencha e-mail e senha.", "err"); return; }
-  if (authModo === "cadastro" && lerAuthPosAcao() === "gerar" && !whats) {
+  if (authModo === "cadastro" && (lerAuthPosAcao() === "gerar" || lerAuthPosAcao() === "ver") && !whats) {
     authMsg("Coloca seu WhatsApp com DDD pra gente te ajudar se precisar.", "err");
     return;
   }
@@ -2611,7 +2652,7 @@ async function submitAuth() {
     return;
   }
   authMsg("Aguarde...", "");
-  salvarQuizLocal({ authAcao: lerAuthPosAcao() || "gerar", querGerar: true });
+  salvarQuizLocal({ authAcao: lerAuthPosAcao() || (state.story ? "ver" : "gerar"), querGerar: !state.story });
 
   if (authModo === "cadastro") {
     const { error } = await sb.auth.signUp({
@@ -2680,18 +2721,15 @@ function limparQuizLocal() {
 }
 
 async function loginGoogle() {
-  const acao = lerAuthPosAcao() || (state.nome && state.tema && !state.story ? "gerar" : "");
+  const acao = lerAuthPosAcao()
+    || (state.story && !state.unlocked ? "ver" : "")
+    || (state.nome && state.tema && !state.story ? "gerar" : "");
   if (acao) setAuthPosAcao(acao);
   try {
-    // não misturar preview antigo com o fluxo de criar agora
-    if (acao === "gerar") {
-      try { localStorage.removeItem("hds_preview"); } catch (e) {}
-    } else if (state.story) {
-      salvarPreviewLocal(state.story);
-    }
+    if (state.story) salvarPreviewLocal(state.story);
     salvarQuizLocal({
       authAcao: acao || lerAuthPosAcao() || "",
-      querGerar: acao === "gerar" || !!(state.nome && state.tema && !state.story)
+      querGerar: acao === "gerar"
     });
   } catch (e) {}
   await sb.auth.signInWithOAuth({
@@ -2829,7 +2867,8 @@ function podeGerarCompleta() {
 function paginasGratis() {
   if (!state.story?.pages?.length) return 9999;
   if (temAcessoCompleto()) return state.story.pages.length;
-  return Math.max(1, Math.ceil(state.story.pages.length / 2));
+  // 3 páginas grátis → na 4ª aparece o paywall
+  return Math.min(3, Math.max(1, Math.ceil(state.story.pages.length / 2)));
 }
 function indicePaywall() { return paginasGratis() + 1; }
 
@@ -2963,22 +3002,7 @@ function iniciarAnimacaoFada() {
 }
 
 async function generateStory() {
-  // cadastro antes: mais leads pra remarketing / WhatsApp
-  if (!state.usuario) {
-    try { localStorage.removeItem("hds_preview"); } catch (e) {}
-    setAuthPosAcao("gerar");
-    salvarQuizLocal({ authAcao: "gerar", querGerar: true });
-    abrirLogin(true, "gerar");
-    return;
-  }
-
   if (state.usuario) await atualizarPerfil();
-
-  // já usou o preview grátis e ainda não tem créditos → paywall antes de gerar outra
-  if (!podeGerarCompleta() && jaUsouPreviewGratis() && !state.story) {
-    abrirOferta();
-    return;
-  }
 
   show("loading");
   iniciarAnimacaoFada();
@@ -3006,20 +3030,33 @@ async function generateStory() {
 
     state.story = story;
     state.page = 0;
+    state.unlocked = false;
+    state.cinemaAudios = [];
+    state.cinemaPronto = false;
+    clearInterval(loadingTimer);
 
+    // assinante / com crédito: história completa
     if (podeGerarCompleta()) {
       if (!state.assinante) await descontarCredito();
       await salvarHistoria(story);
       state.unlocked = true;
-    } else {
-      state.unlocked = false;
-      salvarPreviewLocal(story);
-      marcarPreviewGratisUsado();
+      openBook();
+      prepararAudiosCinema();
+      return;
     }
 
-    state.cinemaAudios = [];
-    state.cinemaPronto = false;
-    clearInterval(loadingTimer);
+    // free: guarda a história e pede cadastro antes de mostrar
+    salvarPreviewLocal(story);
+    marcarPreviewGratisUsado();
+    salvarQuizLocal({ authAcao: "ver", querGerar: false });
+
+    if (!state.usuario) {
+      setAuthPosAcao("ver");
+      abrirLogin(true, "ver");
+      return;
+    }
+
+    // já logado sem crédito: metade + paywall na 4ª
     openBook();
     prepararAudiosCinema();
   } catch (err) {
