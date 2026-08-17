@@ -14,11 +14,17 @@
 
 // os offer_id de cada produto no Kirvano (parte final do link de checkout)
 const OFERTA_ASSINATURA = "baee13d4-4b07-432a-8d1b-26ad1e64a515";
-const OFERTA_PACOTE     = "b95a04be-5c48-4f14-a9c1-3dd5d587b39e";
+const OFERTA_PACOTE     = "02e33bab-929d-4b40-a97a-1fd0848893da";
+const OFERTA_PACOTE_OLD = "b95a04be-5c48-4f14-a9c1-3dd5d587b39e"; // link antigo (ainda libera se alguém pagar)
 const OFERTA_NARRACAO   = "ef28e79f-c76d-40f6-a503-dc252129940d";
+// order bumps (preencher quando criar no Kirvano)
+const OFERTA_BUMP_5     = ""; // +5 historinhas
+const OFERTA_BUMP_3     = ""; // +3 historinhas (irmão)
 
-const CREDITOS_PACOTE     = 10;  // pacote dá 10 histórias
-const CREDITOS_ASSINATURA = 15;  // assinatura dá 15 por mês
+const CREDITOS_PACOTE     = 10;
+const CREDITOS_ASSINATURA = 15;
+const CREDITOS_BUMP_5     = 5;
+const CREDITOS_BUMP_3     = 3;
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -60,10 +66,19 @@ export default async function handler(req, res) {
 
     // descobre qual produto foi comprado (pelo offer_id)
     const produtos = body.products || [];
-    const offerIds = produtos.map(p => p.offer_id);
+    const offerIds = produtos.map(p => p.offer_id).filter(Boolean);
     const temAssinatura = offerIds.includes(OFERTA_ASSINATURA);
-    const temPacote     = offerIds.includes(OFERTA_PACOTE);
-    const temNarracao   = offerIds.includes(OFERTA_NARRACAO);
+    const temPacote = offerIds.includes(OFERTA_PACOTE) || offerIds.includes(OFERTA_PACOTE_OLD);
+    const temNarracao = offerIds.includes(OFERTA_NARRACAO);
+    const temBump5 = OFERTA_BUMP_5 && offerIds.includes(OFERTA_BUMP_5);
+    const temBump3 = OFERTA_BUMP_3 && offerIds.includes(OFERTA_BUMP_3);
+
+    let creditosCompra = 0;
+    if (temPacote) creditosCompra += CREDITOS_PACOTE;
+    if (temBump5) creditosCompra += CREDITOS_BUMP_5;
+    if (temBump3) creditosCompra += CREDITOS_BUMP_3;
+    // assinatura define créditos do mês (não soma pacote no mesmo fluxo, a não ser bumps)
+    if (temAssinatura && !temPacote) creditosCompra = Math.max(creditosCompra, CREDITOS_ASSINATURA);
 
     // 2) acha o usuário no Supabase pelo e-mail (na tabela perfis)
     const perfil = await sbGet(SUPABASE_URL, SERVICE_ROLE,
@@ -75,7 +90,7 @@ export default async function handler(req, res) {
       await sbPost(SUPABASE_URL, SERVICE_ROLE, "/rest/v1/pagamentos_pendentes", {
         email,
         assinatura: temAssinatura,
-        creditos: temAssinatura ? CREDITOS_ASSINATURA : (temPacote ? CREDITOS_PACOTE : 0),
+        creditos: temAssinatura ? Math.max(CREDITOS_ASSINATURA, creditosCompra) : creditosCompra,
         narracao: temNarracao,
         criado_em: new Date().toISOString()
       });
@@ -90,9 +105,9 @@ export default async function handler(req, res) {
     if (temAssinatura) {
       update.assinante = true;
       update.plano = "assinante";
-      update.creditos = CREDITOS_ASSINATURA;
-    } else if (temPacote) {
-      update.creditos = creditosAtuais + CREDITOS_PACOTE;
+      update.creditos = Math.max(CREDITOS_ASSINATURA, creditosAtuais) + (temBump5 ? CREDITOS_BUMP_5 : 0) + (temBump3 ? CREDITOS_BUMP_3 : 0);
+    } else if (creditosCompra > 0) {
+      update.creditos = creditosAtuais + creditosCompra;
     }
 
     if (Object.keys(update).length > 1) {
