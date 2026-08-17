@@ -1397,9 +1397,7 @@ async function checarSessaoInicial() {
     await atualizarPerfil();
     try {
       const preview = localStorage.getItem("hds_preview");
-      const quizRaw = localStorage.getItem("hds_quiz");
-      let quiz = null;
-      try { quiz = quizRaw ? JSON.parse(quizRaw) : null; } catch (e) {}
+      const quiz = lerQuizLocal();
       if (preview) restaurarPreviewLocal();
       if (!state.story && quiz && quiz.story && quiz.story.pages) {
         Object.assign(state, {
@@ -1413,7 +1411,7 @@ async function checarSessaoInicial() {
       }
       if (quiz && quiz.authAcao) setAuthPosAcao(quiz.authAcao);
       if (state.story) {
-        try { localStorage.removeItem("hds_quiz"); } catch (e) {}
+        limparQuizLocal();
         await guardarHistoriaNaConta();
         atualizarBotaoConta();
         const acao = lerAuthPosAcao();
@@ -1424,15 +1422,21 @@ async function checarSessaoInicial() {
         }
         limparAuthPosAcao();
         if (state.assinante || state.creditos > 0) await desbloquearHistoriaAtual();
+        // se ainda está no livro / preview, abre o livro — não some pro dash vazio
+        if (!state.unlocked) {
+          show("book");
+          openBook();
+          prepararAudiosCinema();
+          return;
+        }
         abrirDash();
         return;
       }
     } catch (e) {}
     try {
-      const salvo = localStorage.getItem("hds_quiz");
-      if (salvo) {
-        const q = JSON.parse(salvo);
-        localStorage.removeItem("hds_quiz");
+      const q = lerQuizLocal();
+      if (q) {
+        limparQuizLocal();
         if (q.authAcao) setAuthPosAcao(q.authAcao);
         if (q.querGerar && q.nome && q.tema && !q.story) {
           Object.assign(state, {
@@ -1455,6 +1459,18 @@ async function checarSessaoInicial() {
         if (acao2.startsWith("checkout:")) {
           limparAuthPosAcao();
           abrirCheckoutLogado(acao2.split(":")[1] || "pacote");
+          return;
+        }
+        // tinha quiz sem história: retoma a criação em vez de dash vazio
+        if (q.nome || q.tema) {
+          Object.assign(state, {
+            nome: q.nome || state.nome, idade: q.idade || "", genero: q.genero || "",
+            tema: q.tema || "", licao: q.licao || "", detalhe: q.detalhe || "",
+            leitor: q.leitor || ""
+          });
+          if (q.avatar) state.avatar = q.avatar;
+          if (state.nome && state.tema) { generateStory(); return; }
+          startQuiz();
           return;
         }
       }
@@ -2522,18 +2538,38 @@ async function submitAuth() {
   }
 }
 
+function salvarQuizLocal(extra) {
+  const payload = Object.assign({
+    nome: state.nome, idade: state.idade, genero: state.genero,
+    tema: state.tema, licao: state.licao, detalhe: state.detalhe,
+    leitor: state.leitor, avatar: state.avatar,
+    story: state.story,
+    unlocked: state.unlocked,
+    querGerar: !state.story && !!(state.nome && state.tema),
+    authAcao: lerAuthPosAcao() || ""
+  }, extra || {});
+  const raw = JSON.stringify(payload);
+  try { localStorage.setItem("hds_quiz", raw); } catch (e) {}
+  try { sessionStorage.setItem("hds_quiz", raw); } catch (e) {}
+}
+function lerQuizLocal() {
+  let raw = null;
+  try { raw = localStorage.getItem("hds_quiz"); } catch (e) {}
+  if (!raw) {
+    try { raw = sessionStorage.getItem("hds_quiz"); } catch (e) {}
+  }
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch (e) { return null; }
+}
+function limparQuizLocal() {
+  try { localStorage.removeItem("hds_quiz"); } catch (e) {}
+  try { sessionStorage.removeItem("hds_quiz"); } catch (e) {}
+}
+
 async function loginGoogle() {
   try {
     if (state.story) salvarPreviewLocal(state.story);
-    localStorage.setItem("hds_quiz", JSON.stringify({
-      nome: state.nome, idade: state.idade, genero: state.genero,
-      tema: state.tema, licao: state.licao, detalhe: state.detalhe,
-      leitor: state.leitor, avatar: state.avatar,
-      story: state.story,
-      unlocked: state.unlocked,
-      querGerar: !state.story && !!(state.nome && state.tema),
-      authAcao: lerAuthPosAcao() || ""
-    }));
+    salvarQuizLocal();
   } catch (e) {}
   await sb.auth.signInWithOAuth({
     provider: "google",
@@ -2804,16 +2840,14 @@ function iniciarAnimacaoFada() {
 }
 
 async function generateStory() {
-  // conta primeiro: assim a compra cai no dashboard da mãe
-  if (!state.usuario) {
-    abrirLogin(true, "gerar");
-    return;
-  }
-
   if (state.usuario) await atualizarPerfil();
 
   // já usou o preview grátis e ainda não tem créditos → paywall antes de gerar outra
   if (!podeGerarCompleta() && jaUsouPreviewGratis() && !state.story) {
+    if (!state.usuario) {
+      abrirLogin(true, "checkout:assinatura");
+      return;
+    }
     abrirOferta();
     return;
   }
