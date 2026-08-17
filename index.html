@@ -1422,14 +1422,20 @@ async function checarSessaoInicial() {
       const q = lerQuizLocal();
       if (q && q.authAcao) setAuthPosAcao(q.authAcao);
       const acaoGerar = lerAuthPosAcao();
-      const querGerarAgora = acaoGerar === "gerar" || !!(q && q.querGerar && q.nome && q.tema && !q.story);
-      if (querGerarAgora && q && (q.nome || q.tema)) {
-        Object.assign(state, {
-          nome: q.nome || state.nome || "", idade: q.idade || "", genero: q.genero || "",
-          tema: q.tema || "", licao: q.licao || "", detalhe: q.detalhe || "",
-          leitor: q.leitor || ""
-        });
-        if (q.avatar) state.avatar = q.avatar;
+      const temDados = !!(
+        (q && q.nome && q.tema) || (state.nome && state.tema)
+      );
+      const querGerarAgora = acaoGerar === "gerar" || !!(q && q.querGerar && temDados && !(q && q.story));
+      if (querGerarAgora && temDados) {
+        if (q) {
+          Object.assign(state, {
+            nome: q.nome || state.nome || "", idade: q.idade || state.idade || "",
+            genero: q.genero || state.genero || "", tema: q.tema || state.tema || "",
+            licao: q.licao || state.licao || "", detalhe: q.detalhe || state.detalhe || "",
+            leitor: q.leitor || state.leitor || ""
+          });
+          if (q.avatar) state.avatar = q.avatar;
+        }
         limparQuizLocal();
         limparAuthPosAcao();
         try { localStorage.removeItem("hds_preview"); } catch (e) {}
