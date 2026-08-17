@@ -2800,8 +2800,7 @@ function podeGerarCompleta() {
 function paginasGratis() {
   if (!state.story?.pages?.length) return 9999;
   if (temAcessoCompleto()) return state.story.pages.length;
-  // 3 páginas grátis → na 4ª aparece o paywall
-  return Math.min(3, Math.max(1, Math.ceil(state.story.pages.length / 2)));
+  return Math.max(1, Math.ceil(state.story.pages.length / 2));
 }
 function indicePaywall() { return paginasGratis() + 1; }
 
@@ -3031,7 +3030,7 @@ async function prepararAudiosCinema() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         historiaId: "cinema-" + Date.now(),
-        paginas: state.story.pages,
+        paginas: state.story.pages.slice(0, limite),
         previa: true,
         porPagina: true,
         atePagina: limite,
@@ -3071,9 +3070,7 @@ function atualizarBarraCineminha() {
 
 function cinemaLimite() {
   if (!state.story?.pages) return 0;
-  const porAudio = state.cinemaAudios.filter(Boolean).length;
-  const porAcesso = temAcessoCompleto() ? state.story.pages.length : paginasGratis();
-  return Math.min(porAcesso, porAudio || porAcesso);
+  return temAcessoCompleto() ? state.story.pages.length : paginasGratis();
 }
 function totalScreens() { return state.story.pages.length + 1; } // capa + páginas
 let turning = false;
@@ -3335,8 +3332,17 @@ function confirmarPrepCinema() {
   iniciarCinemaDeVerdade();
 }
 
+function pararAudioCinema() {
+  clearTimeout(cinemaState.timer);
+  cinemaState.timer = null;
+  if (narracaoAudio) {
+    try { narracaoAudio.onended = null; narracaoAudio.onerror = null; narracaoAudio.pause(); } catch (e) {}
+    narracaoAudio = null;
+  }
+}
+
 function iniciarCinemaDeVerdade() {
-  cinemaState = { idx: 0, timer: null, paused: false, playing: true, soTrocarMusica: false };
+  cinemaState = { idx: 0, timer: null, paused: false, playing: true, soTrocarMusica: false, gen: (cinemaState.gen || 0) + 1 };
   const overlay = document.getElementById("cinema");
   overlay.hidden = false;
   overlay.classList.remove("cinema-paused");
@@ -3345,16 +3351,16 @@ function iniciarCinemaDeVerdade() {
   const limite = cinemaLimite();
   document.getElementById("cinemaProgress").innerHTML =
     Array.from({ length: limite }, () => `<div class="seg"><div class="fill"></div></div>`).join("");
-  if (narracaoAudio) { try { narracaoAudio.pause(); } catch (e) {} }
-  narracaoAudio = new Audio();
-  narracaoAudio.play().catch(() => {});
+  pararAudioCinema();
   iniciarMusicaFundo(musicaSalva());
-  cinemaShow(0);
+  const noLivro = Math.max(0, (state.page || 1) - 1);
+  cinemaShow(Math.min(noLivro, limite - 1));
 }
 
 function cinemaShow(i) {
   const limite = cinemaLimite();
-  if (i >= limite) {
+  const gen = cinemaState.gen;
+  if (i >= limite || !state.story?.pages?.[i]) {
     if (!temAcessoCompleto()) {
       stopCinema();
       state.page = indicePaywall();
@@ -3373,7 +3379,7 @@ function cinemaShow(i) {
   scene.innerHTML = `<div class="ken">${sceneSVG({ seed: i + 1, emojis: pg.emojis, closed: sleepy, uid: "cin" + i, texto: txtPagina, tema: state.tema, cena: pg.cena })}</div>`;
 
   const badge = document.getElementById("cinemaPageBadge");
-  if (badge) badge.textContent = `Página ${i + 1} de ${limite}`;
+  if (badge) badge.textContent = `Página ${i + 1} de ${total}`;
 
   const txt = document.getElementById("cinemaText");
   txt.classList.remove("show");
@@ -3384,6 +3390,9 @@ function cinemaShow(i) {
   const audioB64 = state.cinemaAudios[i];
   const segs = document.querySelectorAll("#cinemaProgress .seg");
 
+  function aindaEssaCena() {
+    return cinemaState.playing && cinemaState.gen === gen && cinemaState.idx === i;
+  }
   function marcarProgresso(dur) {
     segs.forEach((s, k) => {
       s.classList.remove("active");
@@ -3396,32 +3405,32 @@ function cinemaShow(i) {
     cinemaState._dur = dur;
     cinemaState._start = Date.now();
   }
+  function avancar() {
+    if (!aindaEssaCena() || cinemaState.paused) return;
+    cinemaShow(i + 1);
+  }
 
-  clearTimeout(cinemaState.timer);
-  if (narracaoAudio) { try { narracaoAudio.pause(); } catch (e) {} }
+  pararAudioCinema();
+  cinemaState.gen = gen;
+  cinemaState.idx = i;
 
   if (audioB64) {
-    narracaoAudio = new Audio(base64ParaAudioURL(audioB64));
-    narracaoAudio.onloadedmetadata = () => {
-      const dur = Math.max(2, narracaoAudio.duration || 8);
-      marcarProgresso(dur);
+    const audio = new Audio(base64ParaAudioURL(audioB64));
+    narracaoAudio = audio;
+    audio.onloadedmetadata = () => {
+      if (!aindaEssaCena()) return;
+      marcarProgresso(Math.max(2, audio.duration || 8));
     };
-    narracaoAudio.onended = () => {
-      if (cinemaState.playing && !cinemaState.paused) cinemaShow(i + 1);
-    };
-    narracaoAudio.onerror = () => {
-      cinemaState.timer = setTimeout(() => cinemaShow(i + 1), 7000);
-    };
-    narracaoAudio.play().catch(() => {
-      cinemaState.timer = setTimeout(() => cinemaShow(i + 1), 7000);
-    });
-    marcarProgresso(8);
+    audio.onended = avancar;
+    audio.onerror = () => { if (aindaEssaCena()) cinemaState.timer = setTimeout(avancar, Math.max(6000, txtPagina.split(/\s+/).length * 400)); };
+    marcarProgresso(Math.max(6, Math.round(txtPagina.split(/\s+/).length / 2)));
+    audio.play().catch(() => {});
   } else {
     const palavras = txtPagina.split(/\s+/).length;
     const dur = Math.max(6, Math.min(12, palavras * 0.55));
     marcarProgresso(dur);
     if (!cinemaState.paused) {
-      cinemaState.timer = setTimeout(() => cinemaShow(i + 1), dur * 1000);
+      cinemaState.timer = setTimeout(avancar, dur * 1000);
     }
   }
 }
@@ -3465,10 +3474,9 @@ function cinemaEnd() {
 }
 
 function stopCinema() {
-  clearTimeout(cinemaState.timer);
   cinemaState.playing = false;
   cinemaState.soTrocarMusica = false;
-  if (narracaoAudio) { try { narracaoAudio.pause(); } catch (e) {} narracaoAudio = null; }
+  pararAudioCinema();
   pararTrilhaSuave(false);
   const prep = document.getElementById("cinemaPrep");
   if (prep) prep.hidden = true;
