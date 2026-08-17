@@ -1387,7 +1387,8 @@ async function handoffParaApp() {
     hds_at: session.access_token,
     hds_rt: session.refresh_token
   });
-  window.location.href = "https://" + DOMINIO_APP + "/#" + params.toString();
+  const extra = noFunilGratis() || flagHdsVer() ? "?hds=ver" : "";
+  window.location.href = "https://" + DOMINIO_APP + "/" + extra + "#" + params.toString();
   return true;
 }
 
@@ -1416,136 +1417,23 @@ async function checarSessaoInicial() {
     state.usuario = session.user;
     await atualizarPerfil();
     await zerarCreditosSeContaNova();
-
-    // prioridade: voltou do Google depois da fada — mostrar a historinha
-    try {
-      const q = lerQuizLocal();
-      if (q && q.authAcao) setAuthPosAcao(q.authAcao);
-      const acao = lerAuthPosAcao();
-      if (!state.story) restaurarPreviewLocal();
-      if (!state.story && q && q.story && q.story.pages) {
-        state.story = q.story;
-        state.unlocked = !!q.unlocked;
-        Object.assign(state, {
-          nome: q.nome || state.nome || "", idade: q.idade || "", genero: q.genero || "",
-          tema: q.tema || "", licao: q.licao || "", detalhe: q.detalhe || "",
-          leitor: q.leitor || ""
-        });
-        if (q.avatar) state.avatar = q.avatar;
-      }
-      if ((acao === "ver" || (!!state.story && !state.unlocked)) && state.story) {
-        limparQuizLocal();
-        limparAuthPosAcao();
-        if (state.assinante || state.creditos > 0) await desbloquearHistoriaAtual();
-        else state.unlocked = false;
-        atualizarBotaoConta();
-        openBook();
-        prepararAudiosCinema();
-        return;
-      }
-      const temDados = !!(
-        (q && q.nome && q.tema) || (state.nome && state.tema)
-      );
-      const querGerarAgora = acao === "gerar" || !!(q && q.querGerar && temDados && !(q && q.story));
-      if (querGerarAgora && temDados) {
-        if (q) {
-          Object.assign(state, {
-            nome: q.nome || state.nome || "", idade: q.idade || state.idade || "",
-            genero: q.genero || state.genero || "", tema: q.tema || state.tema || "",
-            licao: q.licao || state.licao || "", detalhe: q.detalhe || state.detalhe || "",
-            leitor: q.leitor || state.leitor || ""
-          });
-          if (q.avatar) state.avatar = q.avatar;
-        }
-        limparQuizLocal();
-        limparAuthPosAcao();
-        atualizarBotaoConta();
-        if (state.nome && state.tema) { generateStory(); return; }
-        startQuiz();
-        return;
-      }
-      if (acao.startsWith("checkout:")) {
-        limparQuizLocal();
-        limparAuthPosAcao();
-        abrirCheckoutLogado(acao.split(":")[1] || "pacote");
-        return;
-      }
-    } catch (e) {}
-
-    try {
-      const preview = localStorage.getItem("hds_preview");
-      const quiz = lerQuizLocal();
-      if (preview) restaurarPreviewLocal();
-      if (!state.story && quiz && quiz.story && quiz.story.pages) {
-        Object.assign(state, {
-          nome: quiz.nome || "", idade: quiz.idade || "", genero: quiz.genero || "",
-          tema: quiz.tema || "", licao: quiz.licao || "", detalhe: quiz.detalhe || "",
-          leitor: quiz.leitor || ""
-        });
-        if (quiz.avatar) state.avatar = quiz.avatar;
-        state.story = quiz.story;
-        state.unlocked = !!quiz.unlocked;
-      }
-      if (quiz && quiz.authAcao) setAuthPosAcao(quiz.authAcao);
-      if (state.story) {
-        limparQuizLocal();
-        await guardarHistoriaNaConta();
-        atualizarBotaoConta();
-        const acao = lerAuthPosAcao();
-        if (acao.startsWith("checkout:")) {
-          limparAuthPosAcao();
-          abrirCheckoutLogado(acao.split(":")[1] || "pacote");
-          return;
-        }
-        limparAuthPosAcao();
-        if (state.assinante || state.creditos > 0) await desbloquearHistoriaAtual();
-        if (!state.unlocked) {
-          openBook();
-          prepararAudiosCinema();
-          return;
-        }
-        abrirDash();
-        return;
-      }
-      // quiz parcial (sem gerar): retoma a criação
-      if (quiz && (quiz.nome || quiz.tema)) {
-        limparQuizLocal();
-        Object.assign(state, {
-          nome: quiz.nome || state.nome, idade: quiz.idade || "", genero: quiz.genero || "",
-          tema: quiz.tema || "", licao: quiz.licao || "", detalhe: quiz.detalhe || "",
-          leitor: quiz.leitor || ""
-        });
-        if (quiz.avatar) state.avatar = quiz.avatar;
-        if (state.nome && state.tema) { generateStory(); return; }
-        startQuiz();
-        return;
-      }
-    } catch (e) {}
-    // se voltou do pagamento já logada, libera e vai pro dashboard
+    if (await retomarFunilAposAuth()) return;
     try {
       if (localStorage.getItem("hds_aguardando_pagamento") === "1") {
         if (await finalizarAposPagamento()) return;
       }
     } catch (e) {}
-    // acabou de voltar de comprar uma narração: confirma no banco antes de
-    // tocar (não confia só na memória do navegador) e celebra se for a 1ª
     try {
       const historiaComprada = localStorage.getItem("hds_narrar_historia");
       if (historiaComprada) {
         const confirmou = await verificarEAutoTocarNarracao(historiaComprada);
         if (confirmou) { localStorage.removeItem("hds_narrar_historia"); atualizarBotaoConta(); return; }
-        // ainda não confirmado (webhook pode demorar alguns segundos) —
-        // mantém guardado pra tentar de novo numa próxima visita/foco
       }
     } catch (e) {}
-    // já está logada, sem história pra retomar: se está no domínio de
-    // marketing (LP), entrega a sessão pro domínio do app e vai pra lá
-    if (estaNoDominioMarketing() && !localStorage.getItem("hds_preview") && !localStorage.getItem("hds_quiz")) {
+    if (estaNoDominioMarketing()) {
       const foi = await handoffParaApp();
       if (foi) return;
     }
-    // já está no domínio do app (ou não há separação configurada):
-    // vai direto pro dashboard, em vez de mostrar a tela inicial de novo
     atualizarBotaoConta();
     abrirDash();
     return;
@@ -2566,70 +2454,7 @@ async function aposLoginSucesso() {
   document.getElementById("authOverlay").hidden = true;
   await atualizarPerfil();
   await zerarCreditosSeContaNova();
-
-  // se o quiz sumiu no OAuth, tenta recuperar
-  const quiz = lerQuizLocal();
-  if (quiz) {
-    if (!state.nome && quiz.nome) state.nome = quiz.nome;
-    if (!state.tema && quiz.tema) state.tema = quiz.tema;
-    if (!state.idade && quiz.idade) state.idade = quiz.idade;
-    if (!state.genero && quiz.genero) state.genero = quiz.genero;
-    if (!state.licao && quiz.licao) state.licao = quiz.licao;
-    if (!state.detalhe && quiz.detalhe) state.detalhe = quiz.detalhe;
-    if (!state.leitor && quiz.leitor) state.leitor = quiz.leitor;
-    if (quiz.avatar) state.avatar = quiz.avatar;
-    if (!state.story && quiz.story) {
-      state.story = quiz.story;
-      state.unlocked = !!quiz.unlocked;
-    }
-    if (quiz.authAcao && !lerAuthPosAcao()) setAuthPosAcao(quiz.authAcao);
-  }
-  if (!state.story) restaurarPreviewLocal();
-
-  const acao = lerAuthPosAcao();
-  limparAuthPosAcao();
-
-  if (acao.startsWith("checkout:")) {
-    const qual = acao.split(":")[1] || "pacote";
-    abrirCheckoutLogado(qual);
-    return;
-  }
-
-  // cadastrou depois da fada: mostra a metade da historinha
-  if (acao === "ver" || (state.story && !state.unlocked && acao !== "pos_pagamento")) {
-    limparQuizLocal();
-    if (state.assinante || state.creditos > 0 || localStorage.getItem("hds_cupom_ok") === "1") {
-      await desbloquearHistoriaAtual();
-    } else {
-      state.unlocked = false;
-    }
-    openBook();
-    prepararAudiosCinema();
-    return;
-  }
-
-  if (acao === "gerar" || (state.nome && state.tema && !state.story)) {
-    limparQuizLocal();
-    generateStory();
-    return;
-  }
-
-  if (acao === "pos_pagamento" || state.story) {
-    if (state.assinante || state.creditos > 0 || localStorage.getItem("hds_cupom_ok") === "1") {
-      await desbloquearHistoriaAtual();
-    }
-    await guardarHistoriaNaConta();
-    if (acao === "pos_pagamento" || state.assinante || state.creditos > 0) {
-      abrirDash();
-      return;
-    }
-    if (state.story) {
-      openBook();
-      prepararAudiosCinema();
-      return;
-    }
-  }
-
+  if (await retomarFunilAposAuth()) return;
   if (estaNoDominioMarketing()) {
     const foi = await handoffParaApp();
     if (foi) return;
@@ -2705,6 +2530,7 @@ function salvarQuizLocal(extra) {
   const raw = JSON.stringify(payload);
   try { localStorage.setItem("hds_quiz", raw); } catch (e) {}
   try { sessionStorage.setItem("hds_quiz", raw); } catch (e) {}
+  salvarFunilCookie(payload);
 }
 function lerQuizLocal() {
   let raw = null;
@@ -2712,29 +2538,136 @@ function lerQuizLocal() {
   if (!raw) {
     try { raw = sessionStorage.getItem("hds_quiz"); } catch (e) {}
   }
-  if (!raw) return null;
-  try { return JSON.parse(raw); } catch (e) { return null; }
+  if (raw) {
+    try { return JSON.parse(raw); } catch (e) {}
+  }
+  return lerFunilCookie();
 }
 function limparQuizLocal() {
   try { localStorage.removeItem("hds_quiz"); } catch (e) {}
   try { sessionStorage.removeItem("hds_quiz"); } catch (e) {}
 }
 
+function dominioCookieFunil() {
+  if (location.hostname.endsWith("historinhadosono.com")) return "; Domain=.historinhadosono.com";
+  return "";
+}
+function salvarFunilCookie(payload) {
+  try {
+    const d = {
+      authAcao: (payload && payload.authAcao) || lerAuthPosAcao() || "ver",
+      nome: (payload && payload.nome) || state.nome,
+      idade: (payload && payload.idade) || state.idade,
+      genero: (payload && payload.genero) || state.genero,
+      tema: (payload && payload.tema) || state.tema,
+      licao: (payload && payload.licao) || state.licao,
+      detalhe: (payload && payload.detalhe) || state.detalhe,
+      leitor: (payload && payload.leitor) || state.leitor
+    };
+    document.cookie = "hds_funil=" + encodeURIComponent(JSON.stringify(d))
+      + "; Path=/; Max-Age=7200; SameSite=Lax; Secure" + dominioCookieFunil();
+  } catch (e) {}
+}
+function lerFunilCookie() {
+  try {
+    const m = document.cookie.match(/(?:^|; )hds_funil=([^;]*)/);
+    if (!m) return null;
+    return JSON.parse(decodeURIComponent(m[1]));
+  } catch (e) { return null; }
+}
+function limparFunilCookie() {
+  try {
+    document.cookie = "hds_funil=; Path=/; Max-Age=0" + dominioCookieFunil();
+  } catch (e) {}
+}
+function flagHdsVer() {
+  try { return new URLSearchParams(location.search).get("hds") === "ver"; } catch (e) { return false; }
+}
+function noFunilGratis() {
+  const acao = lerAuthPosAcao();
+  if (acao === "ver") return true;
+  if (flagHdsVer()) return true;
+  const c = lerFunilCookie();
+  return !!(c && (c.authAcao === "ver" || c.authAcao === "gerar"));
+}
+function aplicarDadosFunil(q) {
+  if (!q) return;
+  if (q.nome) state.nome = q.nome;
+  if (q.tema) state.tema = q.tema;
+  if (q.idade) state.idade = q.idade;
+  if (q.genero) state.genero = q.genero;
+  if (q.licao) state.licao = q.licao;
+  if (q.detalhe) state.detalhe = q.detalhe;
+  if (q.leitor) state.leitor = q.leitor;
+  if (q.avatar) state.avatar = q.avatar;
+  if (!state.story && q.story && q.story.pages) {
+    state.story = q.story;
+    state.unlocked = false;
+  }
+  if (q.authAcao && !lerAuthPosAcao()) setAuthPosAcao(q.authAcao);
+}
+function mostrarHistorinhaGratis() {
+  state.unlocked = false;
+  state.page = 0;
+  atualizarBotaoConta();
+  openBook();
+  prepararAudiosCinema();
+}
+
+/* depois do Google/cadastro: historinha pela metade, nunca dashboard */
+async function retomarFunilAposAuth() {
+  if (document.getElementById("book") && !document.getElementById("book").hidden) return true;
+  if (document.getElementById("loading") && !document.getElementById("loading").hidden && state.story) return true;
+  const q = lerQuizLocal();
+  aplicarDadosFunil(q);
+  if (!state.story) restaurarPreviewLocal();
+  if (flagHdsVer() && !lerAuthPosAcao()) setAuthPosAcao("ver");
+  const acao = lerAuthPosAcao() || (q && q.authAcao) || (flagHdsVer() ? "ver" : "") || "";
+
+  if (acao.startsWith("checkout:")) {
+    limparAuthPosAcao();
+    abrirCheckoutLogado(acao.split(":")[1] || "pacote");
+    return true;
+  }
+
+  if (state.story && acao !== "pos_pagamento") {
+    limparQuizLocal();
+    limparAuthPosAcao();
+    limparFunilCookie();
+    if (state.assinante) await desbloquearHistoriaAtual();
+    else mostrarHistorinhaGratis();
+    return true;
+  }
+
+  if ((acao === "ver" || acao === "gerar" || noFunilGratis()) && state.nome && state.tema) {
+    limparAuthPosAcao();
+    generateStory();
+    return true;
+  }
+
+  if (acao === "pos_pagamento") {
+    limparAuthPosAcao();
+    return await finalizarAposPagamento();
+  }
+
+  return false;
+}
+
 async function loginGoogle() {
   const acao = lerAuthPosAcao()
     || (state.story && !state.unlocked ? "ver" : "")
-    || (state.nome && state.tema && !state.story ? "gerar" : "");
-  if (acao) setAuthPosAcao(acao);
+    || (state.nome && state.tema && !state.story ? "gerar" : "")
+    || "ver";
+  setAuthPosAcao(acao);
   try {
     if (state.story) salvarPreviewLocal(state.story);
-    salvarQuizLocal({
-      authAcao: acao || lerAuthPosAcao() || "",
-      querGerar: acao === "gerar"
-    });
+    salvarQuizLocal({ authAcao: acao, querGerar: acao === "gerar" });
+    salvarFunilCookie({ authAcao: acao });
   } catch (e) {}
+  const dest = "https://" + DOMINIO_APP + "/?hds=ver";
   await sb.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: window.location.origin + window.location.pathname }
+    options: { redirectTo: dest }
   });
 }
 
@@ -3035,8 +2968,8 @@ async function generateStory() {
     state.cinemaPronto = false;
     clearInterval(loadingTimer);
 
-    // assinante / com crédito: história completa
-    if (podeGerarCompleta()) {
+    // assinante ou créditos comprados (não o funil grátis)
+    if (state.assinante || (state.creditos > 0 && !noFunilGratis())) {
       if (!state.assinante) await descontarCredito();
       await salvarHistoria(story);
       state.unlocked = true;
@@ -3045,20 +2978,19 @@ async function generateStory() {
       return;
     }
 
-    // free: guarda a história e pede cadastro antes de mostrar
+    // free: guarda e pede cadastro (ou mostra a metade se já logou)
     salvarPreviewLocal(story);
     marcarPreviewGratisUsado();
+    setAuthPosAcao("ver");
     salvarQuizLocal({ authAcao: "ver", querGerar: false });
+    salvarFunilCookie({ authAcao: "ver" });
 
     if (!state.usuario) {
-      setAuthPosAcao("ver");
       abrirLogin(true, "ver");
       return;
     }
 
-    // já logado sem crédito: metade + paywall na 4ª
-    openBook();
-    prepararAudiosCinema();
+    mostrarHistorinhaGratis();
   } catch (err) {
     clearInterval(loadingTimer);
     console.error(err);
@@ -3656,6 +3588,9 @@ if (sb) sb.auth.onAuthStateChange((event, session) => {
   if (session) {
     state.usuario = session.user;
     atualizarPerfil();
+    if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && (flagHdsVer() || noFunilGratis())) {
+      zerarCreditosSeContaNova().then(() => retomarFunilAposAuth());
+    }
   } else {
     state.usuario = null;
     state.creditos = 0; state.assinante = false;
