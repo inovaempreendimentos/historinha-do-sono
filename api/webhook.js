@@ -18,7 +18,7 @@ const OFERTA_PACOTE     = "02e33bab-929d-4b40-a97a-1fd0848893da";
 const OFERTA_PACOTE_OLD = "b95a04be-5c48-4f14-a9c1-3dd5d587b39e"; // link antigo (ainda libera se alguém pagar)
 const OFERTA_NARRACAO   = "ef28e79f-c76d-40f6-a503-dc252129940d";
 // order bumps (preencher quando criar no Kirvano)
-const OFERTA_BUMP_5     = ""; // +5 historinhas
+const OFERTA_BUMP_5     = "e231edfe-43bf-4a08-855a-f9398ad98b5a"; // +5 historinhas
 const OFERTA_BUMP_3     = ""; // +3 historinhas (irmão)
 
 const CREDITOS_PACOTE     = 10;
