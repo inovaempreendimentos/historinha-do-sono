@@ -1415,6 +1415,37 @@ async function checarSessaoInicial() {
   if (session) {
     state.usuario = session.user;
     await atualizarPerfil();
+    await zerarCreditosSeContaNova();
+
+    // prioridade: voltou do Google/cadastro no meio de criar a historinha
+    try {
+      const q = lerQuizLocal();
+      if (q && q.authAcao) setAuthPosAcao(q.authAcao);
+      const acaoGerar = lerAuthPosAcao();
+      const querGerarAgora = acaoGerar === "gerar" || !!(q && q.querGerar && q.nome && q.tema && !q.story);
+      if (querGerarAgora && q && (q.nome || q.tema)) {
+        Object.assign(state, {
+          nome: q.nome || state.nome || "", idade: q.idade || "", genero: q.genero || "",
+          tema: q.tema || "", licao: q.licao || "", detalhe: q.detalhe || "",
+          leitor: q.leitor || ""
+        });
+        if (q.avatar) state.avatar = q.avatar;
+        limparQuizLocal();
+        limparAuthPosAcao();
+        try { localStorage.removeItem("hds_preview"); } catch (e) {}
+        atualizarBotaoConta();
+        if (state.nome && state.tema) { generateStory(); return; }
+        startQuiz();
+        return;
+      }
+      if (acaoGerar.startsWith("checkout:")) {
+        limparQuizLocal();
+        limparAuthPosAcao();
+        abrirCheckoutLogado(acaoGerar.split(":")[1] || "pacote");
+        return;
+      }
+    } catch (e) {}
+
     try {
       const preview = localStorage.getItem("hds_preview");
       const quiz = lerQuizLocal();
@@ -1442,7 +1473,6 @@ async function checarSessaoInicial() {
         }
         limparAuthPosAcao();
         if (state.assinante || state.creditos > 0) await desbloquearHistoriaAtual();
-        // se ainda está no livro / preview, abre o livro — não some pro dash vazio
         if (!state.unlocked) {
           show("book");
           openBook();
@@ -1452,47 +1482,18 @@ async function checarSessaoInicial() {
         abrirDash();
         return;
       }
-    } catch (e) {}
-    try {
-      const q = lerQuizLocal();
-      if (q) {
+      // quiz parcial (sem gerar): retoma a criação
+      if (quiz && (quiz.nome || quiz.tema)) {
         limparQuizLocal();
-        if (q.authAcao) setAuthPosAcao(q.authAcao);
-        if (q.querGerar && q.nome && q.tema && !q.story) {
-          Object.assign(state, {
-            nome: q.nome, idade: q.idade, genero: q.genero, tema: q.tema,
-            licao: q.licao, detalhe: q.detalhe, leitor: q.leitor
-          });
-          if (q.avatar) state.avatar = q.avatar;
-          atualizarBotaoConta();
-          const acao = lerAuthPosAcao();
-          if (acao.startsWith("checkout:")) {
-            limparAuthPosAcao();
-            abrirCheckoutLogado(acao.split(":")[1] || "pacote");
-            return;
-          }
-          limparAuthPosAcao();
-          generateStory();
-          return;
-        }
-        const acao2 = lerAuthPosAcao();
-        if (acao2.startsWith("checkout:")) {
-          limparAuthPosAcao();
-          abrirCheckoutLogado(acao2.split(":")[1] || "pacote");
-          return;
-        }
-        // tinha quiz sem história: retoma a criação em vez de dash vazio
-        if (q.nome || q.tema) {
-          Object.assign(state, {
-            nome: q.nome || state.nome, idade: q.idade || "", genero: q.genero || "",
-            tema: q.tema || "", licao: q.licao || "", detalhe: q.detalhe || "",
-            leitor: q.leitor || ""
-          });
-          if (q.avatar) state.avatar = q.avatar;
-          if (state.nome && state.tema) { generateStory(); return; }
-          startQuiz();
-          return;
-        }
+        Object.assign(state, {
+          nome: quiz.nome || state.nome, idade: quiz.idade || "", genero: quiz.genero || "",
+          tema: quiz.tema || "", licao: quiz.licao || "", detalhe: quiz.detalhe || "",
+          leitor: quiz.leitor || ""
+        });
+        if (quiz.avatar) state.avatar = quiz.avatar;
+        if (state.nome && state.tema) { generateStory(); return; }
+        startQuiz();
+        return;
       }
     } catch (e) {}
     // se voltou do pagamento já logada, libera e vai pro dashboard
@@ -1546,6 +1547,28 @@ async function atualizarPerfil() {
     state.plano = data.plano;
   }
   atualizarBotaoConta();
+}
+
+/* conta nova (Google ou e-mail) não ganha o crédito-presente padrão (=1) */
+async function zerarCreditosSeContaNova() {
+  if (!state.usuario || !sb) return;
+  if (state.assinante) return;
+  const criado = Date.parse(state.usuario.created_at || "") || 0;
+  if (!criado || Date.now() - criado > 15 * 60 * 1000) return;
+  // só o default antigo de 1 crédito; não mexe se já comprou (2+)
+  if ((state.creditos || 0) !== 1) return;
+  try {
+    await sb.from("perfis").update({
+      creditos: 0,
+      assinante: false,
+      plano: "gratis",
+      atualizado_em: new Date().toISOString()
+    }).eq("id", state.usuario.id);
+    state.creditos = 0;
+    state.assinante = false;
+    state.plano = "gratis";
+    atualizarBotaoConta();
+  } catch (e) {}
 }
 
 async function aplicarPagamentosPendentes() {
@@ -2507,6 +2530,7 @@ async function aposLoginSucesso() {
   authReceber = false;
   document.getElementById("authOverlay").hidden = true;
   await atualizarPerfil();
+  await zerarCreditosSeContaNova();
 
   // se o quiz sumiu no OAuth, tenta recuperar
   const quiz = lerQuizLocal();
@@ -2537,6 +2561,7 @@ async function aposLoginSucesso() {
 
   if (acao === "gerar" || (state.nome && state.tema && !state.story)) {
     limparQuizLocal();
+    try { localStorage.removeItem("hds_preview"); } catch (e) {}
     generateStory();
     return;
   }
@@ -2596,20 +2621,6 @@ async function submitAuth() {
   const { data: { session } } = await sb.auth.getSession();
   if (session) {
     state.usuario = session.user;
-    // cadastro novo = 0 crédito (metade grátis); crédito só vem de compra/cupom
-    if (authModo === "cadastro") {
-      try {
-        await sb.from("perfis").update({
-          creditos: 0,
-          assinante: false,
-          plano: "gratis",
-          atualizado_em: new Date().toISOString()
-        }).eq("id", state.usuario.id);
-        state.creditos = 0;
-        state.assinante = false;
-        state.plano = "gratis";
-      } catch (e) {}
-    }
     if (whats) await guardarWhatsApp(whats);
     await aposLoginSucesso();
   } else if (authModo === "cadastro") {
@@ -2663,9 +2674,19 @@ function limparQuizLocal() {
 }
 
 async function loginGoogle() {
+  const acao = lerAuthPosAcao() || (state.nome && state.tema && !state.story ? "gerar" : "");
+  if (acao) setAuthPosAcao(acao);
   try {
-    if (state.story) salvarPreviewLocal(state.story);
-    salvarQuizLocal();
+    // não misturar preview antigo com o fluxo de criar agora
+    if (acao === "gerar") {
+      try { localStorage.removeItem("hds_preview"); } catch (e) {}
+    } else if (state.story) {
+      salvarPreviewLocal(state.story);
+    }
+    salvarQuizLocal({
+      authAcao: acao || lerAuthPosAcao() || "",
+      querGerar: acao === "gerar" || !!(state.nome && state.tema && !state.story)
+    });
   } catch (e) {}
   await sb.auth.signInWithOAuth({
     provider: "google",
@@ -2938,6 +2959,8 @@ function iniciarAnimacaoFada() {
 async function generateStory() {
   // cadastro antes: mais leads pra remarketing / WhatsApp
   if (!state.usuario) {
+    try { localStorage.removeItem("hds_preview"); } catch (e) {}
+    setAuthPosAcao("gerar");
     salvarQuizLocal({ authAcao: "gerar", querGerar: true });
     abrirLogin(true, "gerar");
     return;
