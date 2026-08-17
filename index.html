@@ -2407,13 +2407,14 @@ function renderAuth() {
   }
 
   const ehLogin = authModo === "login";
+  const pedindoLead = !!(authReceber || acao === "gerar");
   let sub;
   if (acao.startsWith("checkout:")) {
     sub = "Antes de pagar, crie sua conta com o <strong>mesmo e-mail</strong> do checkout.<br>Assim o pacote cai direto no seu dashboard ✨";
   } else if (acao === "pos_pagamento") {
     sub = "Entre com o <strong>mesmo e-mail da compra</strong> pra liberar seus créditos no dashboard.";
-  } else if (authReceber || acao === "gerar") {
-    sub = `Guarde a historinha de <strong>${esc(state.nome || "seu filho")}</strong> e, se comprar, tudo cai na sua conta ✨<br>Crie sua conta grátis:`;
+  } else if (pedindoLead) {
+    sub = `Quase lá! Crie sua conta grátis pra ver a historinha de <strong>${esc(state.nome || "seu filho")}</strong> ✨<br>Assim ela fica salva e a gente te ajuda no WhatsApp se precisar.`;
   } else {
     sub = ehLogin ? "Entre para ver suas historinhas" : "Crie sua conta grátis 🎁";
   }
@@ -2423,8 +2424,9 @@ function renderAuth() {
     <p class="auth-sub">${sub}</p>
     <input class="auth-input" id="authEmail" type="email" placeholder="seu@email.com" autocomplete="email">
     <input class="auth-input" id="authSenha" type="password" placeholder="senha (mín. 6 caracteres)" autocomplete="${ehLogin ? "current-password" : "new-password"}">
+    ${(!ehLogin || pedindoLead) ? `<input class="auth-input" id="authWhats" type="tel" inputmode="numeric" placeholder="WhatsApp com DDD (ex: 11999999999)" autocomplete="tel">` : ""}
     ${ehLogin ? `<button type="button" class="auth-forgot" onclick="irRecuperarSenha()">Esqueci a senha</button>` : ""}
-    <button class="btn-primary auth-btn" onclick="submitAuth()">${ehLogin ? "Entrar" : "Criar conta"}</button>
+    <button class="btn-primary auth-btn" onclick="submitAuth()">${ehLogin ? "Entrar e ver a historinha" : "Criar conta e ver a historinha"}</button>
     <button class="auth-google" onclick="loginGoogle()">
       <svg width="17" height="17" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.3 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.5c-.5 2.9-2.2 5.3-4.7 7l7.2 5.6c4.2-3.9 6.6-9.6 6.6-16.6z"/><path fill="#FBBC05" d="M10.4 28.3c-.5-1.5-.8-3.1-.8-4.8s.3-3.3.8-4.8l-7.8-6.1C.9 15.9 0 19.8 0 24s.9 8.1 2.6 11.4l7.8-6.1z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.2-5.6c-2 1.4-4.6 2.2-8 2.2-6.4 0-11.7-3.8-13.6-9.3l-7.8 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
       Continuar com Google
@@ -2482,12 +2484,36 @@ async function aposLoginSucesso() {
   document.getElementById("authOverlay").hidden = true;
   await atualizarPerfil();
 
+  // se o quiz sumiu no OAuth, tenta recuperar
+  const quiz = lerQuizLocal();
+  if (quiz) {
+    if (!state.nome && quiz.nome) state.nome = quiz.nome;
+    if (!state.tema && quiz.tema) state.tema = quiz.tema;
+    if (!state.idade && quiz.idade) state.idade = quiz.idade;
+    if (!state.genero && quiz.genero) state.genero = quiz.genero;
+    if (!state.licao && quiz.licao) state.licao = quiz.licao;
+    if (!state.detalhe && quiz.detalhe) state.detalhe = quiz.detalhe;
+    if (!state.leitor && quiz.leitor) state.leitor = quiz.leitor;
+    if (quiz.avatar) state.avatar = quiz.avatar;
+    if (!state.story && quiz.story) {
+      state.story = quiz.story;
+      state.unlocked = !!quiz.unlocked;
+    }
+    if (quiz.authAcao && !lerAuthPosAcao()) setAuthPosAcao(quiz.authAcao);
+  }
+
   const acao = lerAuthPosAcao();
   limparAuthPosAcao();
 
   if (acao.startsWith("checkout:")) {
     const qual = acao.split(":")[1] || "pacote";
     abrirCheckoutLogado(qual);
+    return;
+  }
+
+  if (acao === "gerar" || (state.nome && state.tema && !state.story)) {
+    limparQuizLocal();
+    generateStory();
     return;
   }
 
@@ -2503,13 +2529,9 @@ async function aposLoginSucesso() {
     if (state.story) {
       show("book");
       openBook();
+      prepararAudiosCinema();
       return;
     }
-  }
-
-  if (acao === "gerar" || (state.nome && state.tema && !state.story)) {
-    generateStory();
-    return;
   }
 
   if (estaNoDominioMarketing()) {
@@ -2522,10 +2544,26 @@ async function aposLoginSucesso() {
 async function submitAuth() {
   const email = document.getElementById("authEmail").value.trim();
   const senha = document.getElementById("authSenha").value;
+  const whatsEl = document.getElementById("authWhats");
+  const whats = whatsEl ? normalizarWhats(whatsEl.value) : "";
   if (!email || !senha) { authMsg("Preencha e-mail e senha.", "err"); return; }
+  if (authModo === "cadastro" && lerAuthPosAcao() === "gerar" && !whats) {
+    authMsg("Coloca seu WhatsApp com DDD pra gente te ajudar se precisar.", "err");
+    return;
+  }
+  if (whats && (whats.length < 10 || whats.length > 13)) {
+    authMsg("WhatsApp inválido. Use DDD + número (só números).", "err");
+    return;
+  }
   authMsg("Aguarde...", "");
+  salvarQuizLocal({ authAcao: lerAuthPosAcao() || "gerar", querGerar: true });
+
   if (authModo === "cadastro") {
-    const { error } = await sb.auth.signUp({ email, password: senha });
+    const { error } = await sb.auth.signUp({
+      email,
+      password: senha,
+      options: { data: { whatsapp: whats || null, nome_crianca: state.nome || null } }
+    });
     if (error) { authMsg(traduzErro(error.message), "err"); return; }
   } else {
     const { error } = await sb.auth.signInWithPassword({ email, password: senha });
@@ -2534,8 +2572,28 @@ async function submitAuth() {
   const { data: { session } } = await sb.auth.getSession();
   if (session) {
     state.usuario = session.user;
+    if (whats) await guardarWhatsApp(whats);
     await aposLoginSucesso();
+  } else if (authModo === "cadastro") {
+    authMsg("Conta criada! Se pedir confirmação, olhe o e-mail — ou tente entrar.", "ok");
   }
+}
+
+function normalizarWhats(v) {
+  return String(v || "").replace(/\D/g, "");
+}
+async function guardarWhatsApp(whats) {
+  if (!whats || !sb || !state.usuario) return;
+  try { localStorage.setItem("hds_whatsapp", whats); } catch (e) {}
+  try {
+    await sb.auth.updateUser({ data: { whatsapp: whats } });
+  } catch (e) {}
+  try {
+    await sb.from("perfis").update({
+      whatsapp: whats,
+      atualizado_em: new Date().toISOString()
+    }).eq("id", state.usuario.id);
+  } catch (e) {}
 }
 
 function salvarQuizLocal(extra) {
@@ -2840,14 +2898,17 @@ function iniciarAnimacaoFada() {
 }
 
 async function generateStory() {
+  // cadastro antes: mais leads pra remarketing / WhatsApp
+  if (!state.usuario) {
+    salvarQuizLocal({ authAcao: "gerar", querGerar: true });
+    abrirLogin(true, "gerar");
+    return;
+  }
+
   if (state.usuario) await atualizarPerfil();
 
   // já usou o preview grátis e ainda não tem créditos → paywall antes de gerar outra
   if (!podeGerarCompleta() && jaUsouPreviewGratis() && !state.story) {
-    if (!state.usuario) {
-      abrirLogin(true, "checkout:assinatura");
-      return;
-    }
     abrirOferta();
     return;
   }
