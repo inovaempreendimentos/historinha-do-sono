@@ -1408,10 +1408,19 @@ async function checarSessaoInicial() {
         state.story = quiz.story;
         state.unlocked = !!quiz.unlocked;
       }
+      if (quiz && quiz.authAcao) setAuthPosAcao(quiz.authAcao);
       if (state.story) {
         try { localStorage.removeItem("hds_quiz"); } catch (e) {}
         await guardarHistoriaNaConta();
         atualizarBotaoConta();
+        const acao = lerAuthPosAcao();
+        if (acao.startsWith("checkout:")) {
+          limparAuthPosAcao();
+          abrirCheckoutLogado(acao.split(":")[1] || "pacote");
+          return;
+        }
+        limparAuthPosAcao();
+        if (state.assinante || state.creditos > 0) await desbloquearHistoriaAtual();
         abrirDash();
         return;
       }
@@ -1421,6 +1430,7 @@ async function checarSessaoInicial() {
       if (salvo) {
         const q = JSON.parse(salvo);
         localStorage.removeItem("hds_quiz");
+        if (q.authAcao) setAuthPosAcao(q.authAcao);
         if (q.querGerar && q.nome && q.tema && !q.story) {
           Object.assign(state, {
             nome: q.nome, idade: q.idade, genero: q.genero, tema: q.tema,
@@ -1428,9 +1438,28 @@ async function checarSessaoInicial() {
           });
           if (q.avatar) state.avatar = q.avatar;
           atualizarBotaoConta();
+          const acao = lerAuthPosAcao();
+          if (acao.startsWith("checkout:")) {
+            limparAuthPosAcao();
+            abrirCheckoutLogado(acao.split(":")[1] || "pacote");
+            return;
+          }
+          limparAuthPosAcao();
           generateStory();
           return;
         }
+        const acao2 = lerAuthPosAcao();
+        if (acao2.startsWith("checkout:")) {
+          limparAuthPosAcao();
+          abrirCheckoutLogado(acao2.split(":")[1] || "pacote");
+          return;
+        }
+      }
+    } catch (e) {}
+    // se voltou do pagamento já logada, libera e vai pro dashboard
+    try {
+      if (localStorage.getItem("hds_aguardando_pagamento") === "1") {
+        if (await finalizarAposPagamento()) return;
       }
     } catch (e) {}
     // acabou de voltar de comprar uma narração: confirma no banco antes de
@@ -2290,10 +2319,26 @@ function atualizarBotaoConta() {
 
 /* ---- tela de login (overlay) ---- */
 let authReceber = false; // true quando aberto no meio da criação (fada já rodando)
-function abrirLogin(receber) {
+let authPosAcao = null;  // "gerar" | "checkout:assinatura" | "checkout:pacote" | "pos_pagamento"
+
+function setAuthPosAcao(acao) {
+  authPosAcao = acao || null;
+  try {
+    if (acao) localStorage.setItem("hds_auth_acao", acao);
+    else localStorage.removeItem("hds_auth_acao");
+  } catch (e) {}
+}
+function lerAuthPosAcao() {
+  if (authPosAcao) return authPosAcao;
+  try { return localStorage.getItem("hds_auth_acao") || ""; } catch (e) { return ""; }
+}
+function limparAuthPosAcao() { setAuthPosAcao(null); }
+
+function abrirLogin(receber, acao) {
   authReceber = !!receber;
+  if (acao) setAuthPosAcao(acao);
   document.getElementById("authOverlay").hidden = false;
-  authModo = authReceber ? "cadastro" : "login"; // no fluxo de criação, já começa no cadastro
+  authModo = (authReceber || lerAuthPosAcao()) ? "cadastro" : "login";
   renderAuth();
 }
 function fecharLogin() {
@@ -2308,12 +2353,21 @@ function toggleAuthModo() { authModo = authModo === "login" ? "cadastro" : "logi
 function renderAuth() {
   const box = document.getElementById("authBox");
   const ehLogin = authModo === "login";
-  const subReceber = `Guarde a historinha de <strong>${esc(state.nome || "seu filho")}</strong> e veja outras ideias para criar ✨<br>Crie sua conta grátis:`;
-  const subNormal = ehLogin ? "Entre para criar a historinha do seu filho" : "Crie sua conta e ganhe 1 história grátis 🎁";
+  const acao = lerAuthPosAcao();
+  let sub;
+  if (acao.startsWith("checkout:")) {
+    sub = "Antes de pagar, crie sua conta com o <strong>mesmo e-mail</strong> do checkout.<br>Assim o pacote cai direto no seu dashboard ✨";
+  } else if (acao === "pos_pagamento") {
+    sub = "Entre com o <strong>mesmo e-mail da compra</strong> pra liberar seus créditos no dashboard.";
+  } else if (authReceber || acao === "gerar") {
+    sub = `Guarde a historinha de <strong>${esc(state.nome || "seu filho")}</strong> e, se comprar, tudo cai na sua conta ✨<br>Crie sua conta grátis:`;
+  } else {
+    sub = ehLogin ? "Entre para ver suas historinhas" : "Crie sua conta grátis 🎁";
+  }
   box.innerHTML = `
     <button class="auth-close" onclick="fecharLogin()" aria-label="Fechar">✕</button>
     <div class="auth-logo">☾ Historinha do Sono</div>
-    <p class="auth-sub">${authReceber ? subReceber : subNormal}</p>
+    <p class="auth-sub">${sub}</p>
     <input class="auth-input" id="authEmail" type="email" placeholder="seu@email.com" autocomplete="email">
     <input class="auth-input" id="authSenha" type="password" placeholder="senha (mín. 6 caracteres)" autocomplete="current-password">
     <button class="btn-primary auth-btn" onclick="submitAuth()">${ehLogin ? "Entrar" : "Criar conta"}</button>
@@ -2332,6 +2386,48 @@ function authMsg(txt, tipo) {
   if (m) { m.textContent = txt; m.className = "auth-msg" + (tipo ? " " + tipo : ""); }
 }
 
+async function aposLoginSucesso() {
+  authReceber = false;
+  document.getElementById("authOverlay").hidden = true;
+  await atualizarPerfil();
+
+  const acao = lerAuthPosAcao();
+  limparAuthPosAcao();
+
+  if (acao.startsWith("checkout:")) {
+    const qual = acao.split(":")[1] || "pacote";
+    abrirCheckoutLogado(qual);
+    return;
+  }
+
+  if (acao === "pos_pagamento" || state.story) {
+    if (state.assinante || state.creditos > 0 || localStorage.getItem("hds_cupom_ok") === "1") {
+      await desbloquearHistoriaAtual();
+    }
+    await guardarHistoriaNaConta();
+    if (acao === "pos_pagamento" || state.assinante || state.creditos > 0) {
+      abrirDash();
+      return;
+    }
+    if (state.story) {
+      show("book");
+      openBook();
+      return;
+    }
+  }
+
+  if (acao === "gerar" || (state.nome && state.tema && !state.story)) {
+    generateStory();
+    return;
+  }
+
+  if (estaNoDominioMarketing()) {
+    const foi = await handoffParaApp();
+    if (foi) return;
+  }
+  abrirDash();
+}
+
 async function submitAuth() {
   const email = document.getElementById("authEmail").value.trim();
   const senha = document.getElementById("authSenha").value;
@@ -2347,25 +2443,7 @@ async function submitAuth() {
   const { data: { session } } = await sb.auth.getSession();
   if (session) {
     state.usuario = session.user;
-    await atualizarPerfil();
-    authReceber = false;
-    document.getElementById("authOverlay").hidden = true;
-    if (state.story) {
-      if (state.assinante || state.creditos > 0 || localStorage.getItem("hds_cupom_ok") === "1") {
-        await desbloquearHistoriaAtual();
-      }
-      await guardarHistoriaNaConta();
-      abrirDash();
-      return;
-    }
-    if (state.nome && state.tema && !state.story) { generateStory(); return; }
-    // login "normal" (não no meio de criar história): entrega a sessão
-    // pro domínio do app, se estiver na LP
-    if (estaNoDominioMarketing()) {
-      const foi = await handoffParaApp();
-      if (foi) return;
-    }
-    abrirDash();
+    await aposLoginSucesso();
   }
 }
 
@@ -2378,7 +2456,8 @@ async function loginGoogle() {
       leitor: state.leitor, avatar: state.avatar,
       story: state.story,
       unlocked: state.unlocked,
-      querGerar: !state.story && !!(state.nome && state.tema)
+      querGerar: !state.story && !!(state.nome && state.tema),
+      authAcao: lerAuthPosAcao() || ""
     }));
   } catch (e) {}
   await sb.auth.signInWithOAuth({
@@ -2439,7 +2518,34 @@ function fecharOferta() {
   if (state.usuario) { abrirDash(); }
   else { show("landing"); }
 }
-function irCheckout(qual) { window.open(OFERTAS[qual], "_blank"); }
+function irCheckout(qual) {
+  if (!OFERTAS[qual]) return;
+  if (!state.usuario) {
+    abrirLogin(true, "checkout:" + qual);
+    return;
+  }
+  abrirCheckoutLogado(qual);
+}
+function abrirCheckoutLogado(qual) {
+  try { localStorage.setItem("hds_aguardando_pagamento", "1"); } catch (e) {}
+  const ov = document.getElementById("ofertaOverlay");
+  if (ov) ov.hidden = true;
+  window.open(OFERTAS[qual], "_blank");
+}
+
+async function finalizarAposPagamento() {
+  if (!state.usuario) {
+    abrirLogin(true, "pos_pagamento");
+    return false;
+  }
+  await atualizarPerfil();
+  if (!(state.assinante || state.creditos > 0)) return false;
+  try { localStorage.removeItem("hds_aguardando_pagamento"); } catch (e) {}
+  if (state.story && !state.unlocked) await desbloquearHistoriaAtual();
+  await guardarHistoriaNaConta();
+  abrirDash();
+  return true;
+}
 
 /* ---- preview grátis (metade da história + narração) ---- */
 function jaUsouPreviewGratis() {
@@ -2493,11 +2599,14 @@ function indicePaywall() { return paginasGratis() + 1; }
 
 function goCheckout() { abrirOferta(); }
 async function unlockDemo() {
-  if (state.usuario) {
-    await atualizarPerfil();
-    if (await desbloquearHistoriaAtual()) return;
+  if (!state.usuario) {
+    abrirLogin(true, "pos_pagamento");
+    return;
   }
-  abrirLogin(false);
+  const ok = await finalizarAposPagamento();
+  if (!ok) {
+    alert("Ainda não encontramos o pagamento nessa conta.\n\nUse o mesmo e-mail da compra e toque de novo em alguns segundos.");
+  }
 }
 async function desbloquearHistoriaAtual() {
   if (!state.story) return false;
@@ -2618,6 +2727,12 @@ function iniciarAnimacaoFada() {
 }
 
 async function generateStory() {
+  // conta primeiro: assim a compra cai no dashboard da mãe
+  if (!state.usuario) {
+    abrirLogin(true, "gerar");
+    return;
+  }
+
   if (state.usuario) await atualizarPerfil();
 
   // já usou o preview grátis e ainda não tem créditos → paywall antes de gerar outra
@@ -2642,8 +2757,12 @@ async function generateStory() {
     const story = await response.json();
     if (!story.pages || story.pages.length < 4) throw new Error("história incompleta");
     story.pages = story.pages.map(p => {
-      if (typeof p === "string") return { text: p, emojis: "🌙⭐✨" };
-      return { text: (p.text || p.texto || p.content || "").trim(), emojis: p.emojis || "🌙⭐✨" };
+      if (typeof p === "string") return { text: p, emojis: "🌙⭐✨", cena: "" };
+      return {
+        text: (p.text || p.texto || p.content || "").trim(),
+        emojis: p.emojis || "🌙⭐✨",
+        cena: p.cena || ""
+      };
     }).filter(p => p.text);
 
     state.story = story;
@@ -2798,6 +2917,7 @@ function pageHTML(p) {
         </div>
         <div class="cupom-msg" id="cupomMsg"></div>
         <button class="demo-link" onclick="unlockDemo()">Já paguei — entrar na minha conta</button>
+        <p class="p-sub" style="margin-top:12px;font-size:.82rem">Use o mesmo e-mail da compra pra cair no dashboard</p>
       </div>
     </div>`;
   }
@@ -3271,6 +3391,12 @@ document.addEventListener("visibilitychange", async () => {
   if (!state.usuario || !sb) return;
   await atualizarPerfil();
   atualizarBotaoConta();
+  // voltou do Kirvano depois de pagar → libera e manda pro dashboard
+  try {
+    if (localStorage.getItem("hds_aguardando_pagamento") === "1") {
+      if (await finalizarAposPagamento()) return;
+    }
+  } catch (e) {}
   // acabou de comprar uma narração nessa mesma aba? confirma e toca automaticamente
   if (historiaAguardandoNarracao) {
     const confirmou = await verificarEAutoTocarNarracao(historiaAguardandoNarracao);
