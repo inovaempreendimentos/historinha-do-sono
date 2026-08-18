@@ -3371,8 +3371,7 @@ function iniciarCinemaDeVerdade() {
     Array.from({ length: limite }, () => `<div class="seg"><div class="fill"></div></div>`).join("");
   pararAudioCinema();
   iniciarMusicaFundo(musicaSalva());
-  const noLivro = Math.max(0, (state.page || 1) - 1);
-  cinemaShow(Math.min(noLivro, limite - 1));
+  cinemaShow(0);
 }
 
 function cinemaShow(i) {
