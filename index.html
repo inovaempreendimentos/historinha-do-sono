@@ -1551,6 +1551,7 @@ async function checarSessaoInicial() {
     await atualizarPerfil();
     if (voltouKirvano || localStorage.getItem("hds_aguardando_pagamento") === "1") {
       if (await tentarLiberarPagamento(voltouKirvano)) return;
+      return;
     }
     await zerarCreditosSeContaNova();
     if (await retomarFunilAposAuth()) return;
@@ -2900,12 +2901,42 @@ async function tentarLiberarPagamento(forcar) {
     <div class="loading-msg">Confirmando seu pagamento...</div>
     <div class="loading-sub">Só um instantinho — liberando sua conta ✨</div>`;
 
-  const tentativas = forcar ? 15 : 6;
+  const tentativas = forcar ? 30 : 6;
   for (let i = 0; i < tentativas; i++) {
     if (await finalizarAposPagamento()) return true;
     await new Promise((r) => setTimeout(r, 2000));
   }
+  mostrarPagamentoNaoConfirmado();
   return false;
+}
+
+function mostrarPagamentoNaoConfirmado() {
+  show("loading");
+  const email = esc(state.usuario?.email || "o mesmo da compra");
+  document.querySelector("#loading .loading-stage").innerHTML = `
+    <div class="error-card">
+      <h3>Quase lá! 🌙</h3>
+      <p>O cartão pode levar até 2 minutos para confirmar aqui.<br><br>
+      Conta logada: <strong>${email}</strong><br>
+      Precisa ser o <strong>mesmo e-mail</strong> do checkout.</p>
+      <button class="btn-primary" onclick="retentarPagamento()">Tentar confirmar de novo</button>
+      <button class="btn-small" style="width:100%;margin-top:10px" onclick="unlockDemo()">Já paguei — liberar agora</button>
+      <button class="demo-link" onclick="sairDaEsperaPagamento()">Ir para minhas historinhas</button>
+    </div>`;
+}
+
+async function retentarPagamento() {
+  await tentarLiberarPagamento(true);
+}
+
+function sairDaEsperaPagamento() {
+  if (state.story && !state.unlocked) {
+    show("book");
+    renderPage();
+    return;
+  }
+  show("landing");
+  abrirDash();
 }
 
 async function finalizarAposPagamento() {
@@ -3822,7 +3853,6 @@ document.addEventListener("visibilitychange", async () => {
       if (await tentarLiberarPagamento(true)) return;
     }
   } catch (e) {}
-  // acabou de comprar uma narração nessa mesma aba? confirma e toca automaticamente
   if (historiaAguardandoNarracao) {
     const confirmou = await verificarEAutoTocarNarracao(historiaAguardandoNarracao);
     if (confirmou) {
