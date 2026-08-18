@@ -1540,9 +1540,26 @@ function detectarRetornoKirvano() {
   return false;
 }
 
+async function restaurarSessaoCheckout() {
+  try {
+    const raw = localStorage.getItem("hds_checkout_sess");
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (Date.now() - (d.ts || 0) > 3600000) {
+      localStorage.removeItem("hds_checkout_sess");
+      return;
+    }
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session && d.at && d.rt) {
+      await sb.auth.setSession({ access_token: d.at, refresh_token: d.rt });
+    }
+  } catch (e) {}
+}
+
 async function checarSessaoInicial() {
   if (!sb) { atualizarBotaoConta(); return; }
   const voltouKirvano = detectarRetornoKirvano();
+  await restaurarSessaoCheckout();
   // recebe uma sessão entregue por outro domínio (formato próprio hds_at/hds_rt —
   // NUNCA usa access_token/refresh_token puros, pra não confundir com o retorno
   // nativo do Google OAuth, que o próprio Supabase já sabe processar sozinho)
@@ -1586,7 +1603,9 @@ async function checarSessaoInicial() {
     return;
   } else {
     state.usuario = null;
-    if (voltouKirvano) {
+    const aguardandoPg = (() => { try { return localStorage.getItem("hds_aguardando_pagamento") === "1"; } catch (e) { return false; } })();
+    if (voltouKirvano || aguardandoPg) {
+      if (!state.story) restaurarPreviewLocal();
       abrirLogin(true, "pos_pagamento");
       return;
     }
@@ -2535,12 +2554,12 @@ function renderAuth() {
   }
 
   const ehLogin = authModo === "login";
-  const pedindoLead = !!(authReceber || acao === "gerar" || acao === "ver");
+  const pedindoLead = !!(authReceber || acao === "gerar" || acao === "ver") && acao !== "pos_pagamento";
   let sub;
   if (acao.startsWith("checkout:")) {
     sub = "Antes de pagar, crie sua conta com o <strong>mesmo e-mail</strong> do checkout.<br>Assim o pacote cai direto no seu dashboard ✨";
   } else if (acao === "pos_pagamento") {
-    sub = "Entre com o <strong>mesmo e-mail da compra</strong> pra liberar seus créditos no dashboard.";
+    sub = "Pagamento aprovado! Entre com o <strong>mesmo e-mail da compra</strong> pra liberar seus créditos e a historinha completa ✨";
   } else if (pedindoLead) {
     sub = `Quase lá! Crie sua conta grátis pra ver a historinha de <strong>${esc(state.nome || "seu filho")}</strong> ✨<br>Assim ela fica salva e a gente te ajuda no WhatsApp se precisar.`;
   } else {
@@ -2555,7 +2574,9 @@ function renderAuth() {
     ${(!ehLogin || pedindoLead) ? `<input class="auth-input" id="authWhats" type="tel" inputmode="numeric" placeholder="WhatsApp com DDD (ex: 11999999999)" autocomplete="tel">` : ""}
     ${ehLogin ? `<button type="button" class="auth-forgot" onclick="irRecuperarSenha()">Esqueci a senha</button>` : ""}
     <button class="btn-primary auth-btn" onclick="submitAuth()">${
-      pedindoLead
+      acao === "pos_pagamento"
+        ? "Entrar e liberar minha compra"
+        : pedindoLead
         ? (ehLogin ? "Entrar e ver a historinha" : "Criar conta e ver a historinha")
         : (ehLogin ? "Entrar" : "Criar conta")
     }</button>
@@ -2615,6 +2636,11 @@ async function aposLoginSucesso() {
   authReceber = false;
   document.getElementById("authOverlay").hidden = true;
   await atualizarPerfil();
+  const aguardandoPg = (() => { try { return localStorage.getItem("hds_aguardando_pagamento") === "1"; } catch (e) { return false; } })();
+  if (aguardandoPg || lerAuthPosAcao() === "pos_pagamento") {
+    if (!state.story) restaurarPreviewLocal();
+    if (await tentarLiberarPagamento(true)) return;
+  }
   await zerarCreditosSeContaNova();
   if (await retomarFunilAposAuth()) return;
   if (estaNoDominioMarketing()) {
@@ -2812,7 +2838,9 @@ async function retomarFunilAposAuth() {
 
   if (acao === "pos_pagamento") {
     limparAuthPosAcao();
-    return await finalizarAposPagamento();
+    if (!state.story) restaurarPreviewLocal();
+    if (await tentarLiberarPagamento(true)) return true;
+    return false;
   }
 
   return false;
@@ -2900,9 +2928,29 @@ function irCheckout(qual) {
 }
 function abrirCheckoutLogado(qual) {
   try { localStorage.setItem("hds_aguardando_pagamento", "1"); } catch (e) {}
+  setAuthPosAcao("pos_pagamento");
+  if (state.story) {
+    salvarPreviewLocal(state.story);
+    salvarQuizLocal({ authAcao: "pos_pagamento", story: state.story, querGerar: false });
+  }
+  (async () => {
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session) {
+        localStorage.setItem("hds_checkout_sess", JSON.stringify({
+          at: session.access_token,
+          rt: session.refresh_token,
+          ts: Date.now()
+        }));
+      }
+    } catch (e) {}
+  })();
   const ov = document.getElementById("ofertaOverlay");
   if (ov) ov.hidden = true;
-  window.open(OFERTAS[qual], "_blank");
+  const url = OFERTAS[qual];
+  const mobile = window.matchMedia("(max-width:760px)").matches;
+  if (mobile) window.location.href = url;
+  else window.open(url, "_blank");
 }
 
 async function tentarLiberarPagamento(forcar) {
@@ -2959,9 +3007,11 @@ async function finalizarAposPagamento() {
     abrirLogin(true, "pos_pagamento");
     return false;
   }
+  if (!state.story) restaurarPreviewLocal();
   await atualizarPerfil();
   if (!temCreditos()) return false;
   try { localStorage.removeItem("hds_aguardando_pagamento"); } catch (e) {}
+  try { localStorage.removeItem("hds_checkout_sess"); } catch (e) {}
   try { localStorage.removeItem("hds_preview"); } catch (e) {}
   limparQuizLocal();
   limparFunilCookie();
@@ -2969,10 +3019,21 @@ async function finalizarAposPagamento() {
   if (oferta) oferta.hidden = true;
   if (state.story) {
     state.unlocked = true;
-    await desbloquearHistoriaAtual();
+    if (temCreditos()) await descontarCredito();
+    await salvarHistoria(state.story);
+    try {
+      if (state_ultimaHistoriaId) {
+        await sb.from("historias").update({ tem_narracao: true }).eq("id", state_ultimaHistoriaId);
+      }
+    } catch (e) {}
+    show("book");
+    openBook();
+    prepararAudiosCinema();
+  } else {
+    await guardarHistoriaNaConta();
+    abrirDash();
   }
-  await guardarHistoriaNaConta();
-  abrirDash();
+  atualizarBotaoConta();
   return true;
 }
 
