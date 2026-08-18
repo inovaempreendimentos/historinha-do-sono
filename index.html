@@ -2764,28 +2764,28 @@ function mostrarHistorinhaGratis() {
 /* depois do Google/cadastro: historinha pela metade, nunca dashboard */
 async function retomarFunilAposAuth() {
   if (document.getElementById("book") && !document.getElementById("book").hidden) return true;
-  if (document.getElementById("loading") && !document.getElementById("loading").hidden && state.story) return true;
   const q = lerQuizLocal();
   aplicarDadosFunil(q);
   if (!state.story) restaurarPreviewLocal();
   if (flagHdsVer() && !lerAuthPosAcao()) setAuthPosAcao("ver");
   const acao = lerAuthPosAcao() || (q && q.authAcao) || (flagHdsVer() ? "ver" : "") || "";
 
-  if (acao.startsWith("checkout:")) {
-    limparAuthPosAcao();
-    abrirCheckoutLogado(acao.split(":")[1] || "pacote");
-    return true;
-  }
-
   if (state.story && acao !== "pos_pagamento") {
     try {
       if (localStorage.getItem("hds_aguardando_pagamento") === "1") return false;
     } catch (e) {}
+    clearInterval(loadingTimer);
     limparQuizLocal();
     limparAuthPosAcao();
     limparFunilCookie();
     if (temCreditos()) await desbloquearHistoriaAtual();
     else mostrarHistorinhaGratis();
+    return true;
+  }
+
+  if (acao.startsWith("checkout:")) {
+    limparAuthPosAcao();
+    abrirCheckoutLogado(acao.split(":")[1] || "pacote");
     return true;
   }
 
@@ -3198,6 +3198,8 @@ async function generateStory() {
     salvarFunilCookie({ authAcao: "ver" });
 
     if (!state.usuario) {
+      clearInterval(loadingTimer);
+      show("landing");
       abrirLogin(true, "ver");
       return;
     }
