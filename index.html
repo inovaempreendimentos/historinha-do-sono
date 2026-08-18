@@ -1753,7 +1753,9 @@ function fecharDash() { document.getElementById("dashOverlay").hidden = true; sh
 function renderDash(historias) {
   const body = document.getElementById("dashBody");
   const nome = (state.usuario && state.usuario.email) ? state.usuario.email.split("@")[0] : "";
-  const creditoTxt = state.assinante ? "assinante ✨" : `${state.creditos} história${state.creditos === 1 ? "" : "s"} disponível${state.creditos === 1 ? "" : "eis"}`;
+  const creditoTxt = state.assinante
+    ? `${textoCreditos()} este mês · assinante ✨`
+    : `${textoCreditos()} disponível${(state.creditos || 0) === 1 ? "" : "eis"}`;
 
   let html = `
     <div class="dash-hero">
@@ -2407,7 +2409,7 @@ async function abrirHistoriaSalva(id) {
     state.nome = data.nome_crianca;
     if (data.avatar) state.avatar = data.avatar;
     state.page = 0;
-    state.unlocked = !!(state.assinante || state.creditos > 0);
+    state.unlocked = true;
     document.getElementById("dashOverlay").hidden = true;
     openBook();
     if (!state.unlocked) prepararAudiosCinema();
@@ -2427,7 +2429,7 @@ function atualizarBotaoConta() {
   const el = document.getElementById("contaBtn");
   if (!el) return;
   if (state.usuario) {
-    const cred = state.assinante ? "∞" : state.creditos;
+    const cred = state.assinante ? `${textoCreditos(true)} ✨` : textoCreditos(true);
     el.innerHTML = `<span class="cred-pill">📖 ${cred} ✨</span>`;
     el.onclick = abrirDash;
   } else {
@@ -2776,7 +2778,7 @@ async function retomarFunilAposAuth() {
     limparQuizLocal();
     limparAuthPosAcao();
     limparFunilCookie();
-    if (state.assinante) await desbloquearHistoriaAtual();
+    if (temCreditos()) await desbloquearHistoriaAtual();
     else mostrarHistorinhaGratis();
     return true;
   }
@@ -2844,14 +2846,14 @@ async function logout() {
 /* ---- minha conta ---- */
 function abrirMinhaConta() {
   const o = document.getElementById("contaOverlay");
-  const cred = state.assinante ? "ilimitadas" : state.creditos;
+  const cred = textoCreditos();
   document.getElementById("contaBox").innerHTML = `
     <button class="auth-close" onclick="document.getElementById('contaOverlay').hidden=true" aria-label="Fechar">✕</button>
     <div class="auth-logo">☾ Minha conta</div>
     <p class="conta-email">${esc(state.usuario.email)}</p>
     <div class="conta-cred">${cred}</div>
-    <p class="conta-cred-label">${state.assinante ? "você é assinante 💛" : "histórias disponíveis"}</p>
-    ${state.assinante ? "" : `<button class="btn-primary" style="width:100%;margin-bottom:10px" onclick="abrirOferta()">Comprar mais / Assinar ✨</button>`}
+    <p class="conta-cred-label">${state.assinante ? "você é assinante 💛 · renova todo mês" : "histórias disponíveis"}</p>
+    ${temCreditos() ? "" : `<button class="btn-primary" style="width:100%;margin-bottom:10px" onclick="abrirOferta()">Comprar mais / Assinar ✨</button>`}
     <button class="auth-ghost" onclick="logout()">Sair</button>`;
   o.hidden = false;
 }
@@ -2907,7 +2909,7 @@ async function finalizarAposPagamento() {
     return false;
   }
   await atualizarPerfil();
-  if (!(state.assinante || state.creditos > 0)) return false;
+  if (!temCreditos()) return false;
   try { localStorage.removeItem("hds_aguardando_pagamento"); } catch (e) {}
   try { localStorage.removeItem("hds_preview"); } catch (e) {}
   limparQuizLocal();
@@ -2959,12 +2961,20 @@ function restaurarPreviewLocal() {
     return true;
   } catch (e) { return false; }
 }
+function temCreditos() {
+  return (state.creditos || 0) > 0;
+}
+function textoCreditos(curto) {
+  const n = state.creditos || 0;
+  if (curto) return String(n);
+  return `${n} história${n === 1 ? "" : "s"}`;
+}
+
 function temAcessoCompleto() {
-  if (state.assinante) return true;
   return !!state.unlocked;
 }
 function podeGerarCompleta() {
-  return !!(state.usuario && (state.assinante || state.creditos > 0));
+  return !!(state.usuario && temCreditos());
 }
 function paginasGratis() {
   if (!state.story?.pages?.length) return 9999;
@@ -2988,17 +2998,15 @@ async function desbloquearHistoriaAtual() {
   if (!state.story) return false;
   const cupomOk = (function () { try { return localStorage.getItem("hds_cupom_ok") === "1"; } catch (e) { return false; } })();
   if (state.usuario) await atualizarPerfil();
-  const pode = !!(state.assinante || (state.usuario && state.creditos > 0) || cupomOk);
+  const pode = !!(temCreditos() && state.usuario) || cupomOk;
   if (!pode) return false;
 
-  if (state.usuario) {
-    if (!state.assinante && state.creditos > 0) await descontarCredito();
-    await salvarHistoria(state.story);
-    if (state_ultimaHistoriaId) {
-      try {
-        await sb.from("historias").update({ tem_narracao: true }).eq("id", state_ultimaHistoriaId);
-      } catch (e) {}
-    }
+  if (state.usuario && temCreditos()) await descontarCredito();
+  await salvarHistoria(state.story);
+  if (state_ultimaHistoriaId) {
+    try {
+      await sb.from("historias").update({ tem_narracao: true }).eq("id", state_ultimaHistoriaId);
+    } catch (e) {}
   }
 
   state.unlocked = true;
@@ -3136,9 +3144,9 @@ async function generateStory() {
     state.cinemaPronto = false;
     clearInterval(loadingTimer);
 
-    // assinante ou créditos comprados (não o funil grátis)
-    if (state.assinante || (state.creditos > 0 && !noFunilGratis())) {
-      if (!state.assinante) await descontarCredito();
+    // créditos comprados ou assinatura (não o funil grátis)
+    if (temCreditos() && !noFunilGratis()) {
+      await descontarCredito();
       await salvarHistoria(story);
       state.unlocked = true;
       openBook();
