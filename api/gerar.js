@@ -53,10 +53,11 @@ REGRAS:
 - As 2 últimas páginas desaceleram: tom calmo, bocejos, olhinhos pesados; a última termina com ${nome} dormindo e um "boa noite".
 - Para cada página, escolha 2 ou 3 emojis que ilustrem EXATAMENTE o que acontece naquela página (lugar + ação). Ex.: mar→🌊🐚, floresta→🌲🦊, quarto/sono→🛏️🌙, castelo→🏰👑, espaço→🚀🌟.
 - Para cada página, informe também o campo "cena" com EXATAMENTE um destes valores (o lugar visual da página): quarto, mar, floresta, castelo, espaco, vulcao, montanhas, jardim, nuvens, campo, cidade, colinas. As 2 últimas páginas devem ser "quarto".
+- Para cada página, informe "acao" com EXATAMENTE um destes valores (o que o protagonista faz visualmente na cena): parado, correr, pular, voar, nadar, dormir, abracar, surpresa, apontar, acenar, pensar, medo, feliz, explorar, sentar, acordar. Escolha a ação que melhor combina com o texto da página. As 2 últimas páginas devem ser "dormir".
 - Crie um título encantador curto e uma dedicatória de 1 frase assinada por "${leitor || "quem ama a criança"}".
 
 RESPONDA APENAS com JSON válido, sem markdown, sem crases, neste formato exato:
-{"title":"...","dedication":"...","pages":[{"text":"...","emojis":"🦖🌋⭐","cena":"vulcao"}]}`;
+{"title":"...","dedication":"...","pages":[{"text":"...","emojis":"🦖🌋⭐","cena":"vulcao","acao":"explorar"}]}`;
 
     const r = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -90,14 +91,20 @@ RESPONDA APENAS com JSON válido, sem markdown, sem crases, neste formato exato:
     }
 
     const CENAS_OK = { quarto:1, mar:1, floresta:1, castelo:1, espaco:1, vulcao:1, montanhas:1, jardim:1, nuvens:1, campo:1, cidade:1, colinas:1 };
+    const ACOES_OK = {
+      parado:1, correr:1, pular:1, voar:1, nadar:1, dormir:1, abracar:1, surpresa:1,
+      apontar:1, acenar:1, pensar:1, medo:1, feliz:1, explorar:1, sentar:1, acordar:1
+    };
     story.pages = (story.pages || []).map(p => {
-      if (typeof p === "string") return { text: p.trim(), emojis: "🌙⭐✨", cena: "" };
+      if (typeof p === "string") return { text: p.trim(), emojis: "🌙⭐✨", cena: "", acao: "" };
       const text = String(p.text || p.texto || p.content || "").trim();
       const emojis = p.emojis || p.emoji || "🌙⭐✨";
       let cena = String(p.cena || p.scene || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       if (cena === "espaco" || cena === "espaço") cena = "espaco";
       if (!CENAS_OK[cena]) cena = "";
-      return { text, emojis, cena };
+      let acao = String(p.acao || p.action || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (!ACOES_OK[acao]) acao = "";
+      return { text, emojis, cena, acao };
     }).filter(p => p.text);
 
     if (story.pages.length > paginas) story.pages = story.pages.slice(0, paginas);
