@@ -220,6 +220,11 @@ footer{background:var(--night-deep);text-align:center;padding:40px 24px;font-siz
   aspect-ratio:3/4.4;max-height:min(calc(100vh - 170px), 640px);
   perspective:2200px;
 }
+.book-sheet.paywall-mode{
+  aspect-ratio:unset;
+  max-height:min(calc(100dvh - 112px),680px);
+  height:min(calc(100dvh - 112px),680px);
+}
 .page-card{
   position:absolute;inset:0;background:#fff;color:var(--ink);
   border-radius:8px 18px 18px 8px;overflow:hidden;
@@ -322,19 +327,10 @@ footer{background:var(--night-deep);text-align:center;padding:40px 24px;font-siz
   box-shadow:0 4px 14px rgba(255,217,142,.35);
 }
 .book-narr-bar .btn-small:disabled{opacity:.55;cursor:wait}
-.paywall .oferta-mini{display:flex;flex-direction:column;gap:10px;margin:18px 0;text-align:left}
-.paywall .oferta-mini button{width:100%}
-.paywall .oferta-mini .mini-tag{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#c99127;margin-bottom:4px}
 .paywall .btn-small{
   background:#fff6e0;color:#4a3a12;border:1.5px solid #e2c56a;
 }
 .paywall .btn-small:hover{background:#ffe9b0;border-color:#c99127}
-.paywall .oferta-mini{display:flex;flex-direction:column;gap:10px;margin:18px 0;text-align:left}
-.paywall .oferta-mini button{width:100%}
-.paywall .oferta-mini .mini-tag{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#c99127;margin-bottom:4px}
-.paywall .cupom-row{display:flex;gap:8px;margin:14px 0 8px}
-.paywall .cupom-row input{flex:1;border:1.5px solid #e8dfd0;border-radius:12px;padding:10px 12px;font-family:inherit;font-weight:700;font-size:.9rem}
-.paywall .cupom-msg{font-size:.8rem;color:#c99127;min-height:1.1em;margin-bottom:8px}
 .book-nav{display:flex;align-items:center;gap:16px;margin-top:16px;flex:0 0 auto}
 .nav-btn{width:46px;height:46px;border-radius:50%;background:rgba(255,249,239,.1);border:2px solid rgba(255,249,239,.25);color:var(--paper);font-size:1.2rem;font-weight:800;transition:all .15s}
 .nav-btn:hover:not(:disabled){border-color:var(--moon);background:rgba(255,217,142,.12)}
@@ -347,34 +343,40 @@ footer{background:var(--night-deep);text-align:center;padding:40px 24px;font-siz
 /* paywall */
 .paywall{
   background:#fff;color:var(--ink);border-radius:var(--radius);max-width:560px;width:100%;
-  box-shadow:0 30px 70px rgba(0,0,0,.45);padding:40px 36px;text-align:center;
+  box-shadow:0 30px 70px rgba(0,0,0,.45);padding:0;text-align:center;
+  display:flex;flex-direction:column;min-height:100%;
 }
 .paywall-scroll{
-  flex:1;min-height:0;width:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  display:flex;align-items:flex-start;justify-content:center;
-  background:linear-gradient(160deg,var(--night),var(--night-soft));
-  padding:12px 0 28px;
+  flex:1;min-height:0;width:100%;overflow:hidden;
+  display:flex;flex-direction:column;
+  background:#fff;
 }
-.paywall .lock-emoji{font-size:2.6rem;display:block;margin-bottom:14px}
-.paywall h3{font-size:1.5rem;margin-bottom:10px}
-.paywall .p-sub{color:var(--ink-soft);margin-bottom:22px;font-size:.98rem}
-.paywall ul{list-style:none;text-align:left;margin:0 auto 26px;max-width:360px}
-.paywall li{padding:8px 0;font-size:.95rem;display:flex;gap:10px}
-.paywall li span:first-child{color:#c99127;font-weight:800}
-.paywall .price-line{font-family:'Fraunces',serif;font-size:2rem;font-weight:750;margin-bottom:18px}
-.paywall .price-line small{font-size:.9rem;color:var(--ink-soft);font-family:'Nunito',sans-serif;font-weight:600}
-.paywall .demo-link{display:block;margin-top:16px;font-size:.82rem;color:var(--ink-soft);background:none;text-decoration:underline}
+.paywall-top{padding:28px 24px 12px;flex-shrink:0}
+.paywall-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 24px 12px;text-align:left}
+.paywall-foot{
+  flex-shrink:0;padding:14px 24px calc(14px + env(safe-area-inset-bottom, 0px));
+  background:#fff;border-top:1px solid rgba(0,0,0,.07);
+  box-shadow:0 -10px 28px rgba(0,0,0,.06);
+}
+.paywall .lock-emoji{font-size:2.2rem;display:block;margin-bottom:10px}
+.paywall h3{font-size:1.35rem;margin-bottom:8px;line-height:1.2}
+.paywall .p-sub{color:var(--ink-soft);margin-bottom:0;font-size:.92rem;line-height:1.45}
+.paywall ul{list-style:none;margin:0;max-width:none}
+.paywall li{padding:6px 0;font-size:.9rem;display:flex;gap:8px;line-height:1.35}
+.paywall li span:first-child{color:#c99127;font-weight:800;flex-shrink:0}
+.paywall .demo-link{display:block;margin-top:12px;font-size:.82rem;color:var(--ink-soft);background:none;text-decoration:underline;width:100%;padding:4px 0}
 .paywall .btn-primary,.paywall .btn-small{
   white-space:normal;line-height:1.25;padding:14px 16px;width:100%;
   font-size:.92rem;box-sizing:border-box;
 }
-.paywall .oferta-mini{margin:14px 0}
-.paywall .oferta-mini .mini-tag{margin-bottom:6px}
-.paywall .plano-box{background:rgba(255,217,142,.12);border:1.5px solid rgba(201,145,39,.35);border-radius:14px;padding:14px 16px;margin:0 0 12px;text-align:left}
-.paywall .plano-box h4{font-family:'Fraunces',serif;font-size:1rem;color:#8a6a18;margin-bottom:10px;font-weight:700}
-.paywall .plano-box ul{margin:0 0 14px;max-width:none}
-.paywall .plano-box li{font-size:.88rem;padding:5px 0}
-.paywall .plano-pacote{font-size:.82rem;color:var(--ink-soft);margin-top:6px;line-height:1.45}
+.paywall .plano-box{background:rgba(255,217,142,.12);border:1.5px solid rgba(201,145,39,.35);border-radius:14px;padding:14px 16px;margin:0;text-align:left}
+.paywall .plano-box .mini-tag{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#c99127;margin-bottom:6px}
+.paywall .plano-preco{font-family:'Fraunces',serif;font-size:1.85rem;font-weight:750;color:#8a6a18;margin:2px 0 10px;line-height:1}
+.paywall .plano-preco small{font-size:.95rem;color:var(--ink-soft);font-family:'Nunito',sans-serif;font-weight:600}
+.paywall .btn-pacote{margin-top:10px}
+.paywall .cupom-row{display:flex;gap:8px;margin:10px 0 6px}
+.paywall .cupom-row input{flex:1;border:1.5px solid #e8dfd0;border-radius:12px;padding:10px 12px;font-family:inherit;font-weight:700;font-size:.88rem;min-width:0}
+.paywall .cupom-msg{font-size:.78rem;color:#c99127;min-height:1em;margin-bottom:4px;text-align:center}
 
 .error-card{background:#fff;color:var(--ink);border-radius:var(--radius);max-width:480px;padding:36px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.4)}
 .error-card h3{margin-bottom:12px}
@@ -533,13 +535,26 @@ footer{background:var(--night-deep);text-align:center;padding:40px 24px;font-siz
   .section{padding:64px 20px}
   .hero{padding:44px 20px 90px}
   .page-text p{font-size:1.05rem}
-  .paywall{padding:22px 16px 32px !important}
-  .paywall .lock-emoji{font-size:2rem;margin-bottom:8px}
-  .paywall h3{font-size:1.2rem}
-  .paywall .p-sub{font-size:.88rem;margin-bottom:12px}
-  .paywall ul{margin:0 auto 14px}
-  .paywall li{padding:5px 0;font-size:.86rem}
+  .paywall{padding:0 !important}
+  .paywall-top{padding:14px 16px 8px}
+  .paywall-body{padding:0 16px 8px}
+  .paywall-foot{padding:12px 16px max(12px, env(safe-area-inset-bottom))}
+  .paywall .lock-emoji{font-size:1.75rem;margin-bottom:4px}
+  .paywall h3{font-size:1.12rem;margin-bottom:4px}
+  .paywall .p-sub{font-size:.82rem}
+  .paywall li{padding:4px 0;font-size:.82rem}
+  .paywall .plano-box{padding:12px 14px}
+  .paywall .plano-preco{font-size:1.55rem}
   .paywall .btn-primary,.paywall .btn-small{font-size:.88rem;padding:13px 12px}
+  .book-sheet.paywall-mode{
+    max-width:100%;
+    max-height:calc(100dvh - 96px);
+    height:calc(100dvh - 96px);
+    border-radius:18px 18px 0 0;
+  }
+  .page-card.has-paywall{border-radius:18px 18px 0 0}
+  #book .book-narr-bar{margin-bottom:6px;padding:8px 12px;font-size:.76rem}
+  #book .book-nav{margin-top:8px}
 }
 </style>
 </head>
@@ -3312,41 +3327,33 @@ function pageHTML(p) {
   if (!temAcessoCompleto() && p >= paywallIdx) {
     const metade = paginasGratis();
     return `<div class="paywall-scroll">
-      <div class="paywall" style="box-shadow:none;border-radius:0;max-width:none;margin:0">
-        <span class="lock-emoji">🔒✨</span>
-        <h3>${esc(state.nome)} está no meio da aventura!</h3>
-        <p class="p-sub">Você leu e ouviu ${metade} de ${state.story.pages.length} páginas de graça. Desbloqueie o final hoje à noite:</p>
-        <ul>
-          <li><span>✦</span><span>As ${state.story.pages.length} páginas completas, com o final feito para dar sono</span></li>
-          <li><span>✦</span><span>Cineminha com voz e musiquinha em todas</span></li>
-          <li><span>✦</span><span>Narração completa do início ao fim</span></li>
-          <li><span>✦</span><span>PDF ilustrado para imprimir</span></li>
-        </ul>
-        <div class="oferta-mini">
+      <div class="paywall">
+        <div class="paywall-top">
+          <span class="lock-emoji">🔒✨</span>
+          <h3>${esc(state.nome)} está no meio da aventura!</h3>
+          <p class="p-sub">Você ouviu ${metade} de ${state.story.pages.length} páginas grátis. Desbloqueie o final:</p>
+        </div>
+        <div class="paywall-body">
           <div class="plano-box">
             <div class="mini-tag">Mais popular</div>
-            <h4>Assinatura — R$ 49,90/mês inclui:</h4>
+            <p class="plano-preco">R$ 49,90<small>/mês</small></p>
             <ul>
-              <li><span>✦</span><span><strong>15 histórias por mês</strong> — cada uma única, com o nome do seu filho</span></li>
-              <li><span>✦</span><span>Desbloqueia <strong>esta</strong> historinha agora + mais 14 no mês</span></li>
-              <li><span>✦</span><span>Cineminha e narração premium em <strong>todas</strong></span></li>
-              <li><span>✦</span><span>PDF ilustrado de cada história</span></li>
-              <li><span>✦</span><span>Cancele quando quiser</span></li>
+              <li><span>✦</span><span><strong>15 histórias/mês</strong> — cada uma com o nome do seu filho</span></li>
+              <li><span>✦</span><span>Esta historinha completa + Cineminha + narração</span></li>
+              <li><span>✦</span><span>PDF para imprimir · cancele quando quiser</span></li>
             </ul>
-            <button class="btn-primary" onclick="irCheckout('assinatura')">Assinar — R$ 49,90/mês</button>
           </div>
-          <div>
-            <button class="btn-small" onclick="irCheckout('pacote')">Pacote — R$ 97 · 10 histórias</button>
-            <p class="plano-pacote">Sem mensalidade · Cineminha e narração em todas · PDF incluso</p>
+          <button class="btn-small btn-pacote" onclick="irCheckout('pacote')">Pacote avulso — R$ 97 · 10 histórias</button>
+        </div>
+        <div class="paywall-foot">
+          <button class="btn-primary" onclick="irCheckout('assinatura')">Assinar — R$ 49,90/mês</button>
+          <div class="cupom-row">
+            <input id="cupomInput" placeholder="Cupom" autocomplete="off">
+            <button class="btn-small" type="button" onclick="aplicarCupom()">Aplicar</button>
           </div>
+          <div class="cupom-msg" id="cupomMsg"></div>
+          <button class="demo-link" onclick="unlockDemo()">Já paguei — liberar minha conta</button>
         </div>
-        <div class="cupom-row">
-          <input id="cupomInput" placeholder="Cupom" autocomplete="off">
-          <button class="btn-small" type="button" onclick="aplicarCupom()">Aplicar</button>
-        </div>
-        <div class="cupom-msg" id="cupomMsg"></div>
-        <button class="demo-link" onclick="unlockDemo()">Já paguei — entrar na minha conta</button>
-        <p class="p-sub" style="margin-top:10px;margin-bottom:0;font-size:.78rem">Use o mesmo e-mail da compra</p>
       </div>
     </div>`;
   }
@@ -3402,6 +3409,7 @@ function renderPage(turnDir) {
     turning = false;
   }
 
+  document.getElementById("bookSheet").classList.toggle("paywall-mode", atPaywall);
   document.getElementById("prevBtn").disabled = p === 0;
   document.getElementById("nextBtn").disabled = atPaywall || p === total - 1;
   document.getElementById("pageDots").innerHTML = Array.from({ length: total }, (_, i) => {
@@ -3414,7 +3422,7 @@ function renderPage(turnDir) {
   // última página: mostra o convite para o dashboard/oferta (momento de conversão)
   const nav = document.getElementById("bookNav");
   let cta = document.getElementById("bookEndCta");
-  if (p === total - 1 || atPaywall) {
+  if (p === total - 1 && !atPaywall) {
     if (!cta) {
       cta = document.createElement("div");
       cta.id = "bookEndCta";
