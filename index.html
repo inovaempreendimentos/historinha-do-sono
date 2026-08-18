@@ -1393,8 +1393,21 @@ async function handoffParaApp() {
 }
 
 /* ================= LOGIN + CRÉDITOS (Supabase) ================= */
+function detectarRetornoKirvano() {
+  try {
+    const q = new URLSearchParams(location.search);
+    if (q.has("kirvano_upsell") || q.has("kirvano") || q.get("kirvano_return") === "1") {
+      localStorage.setItem("hds_aguardando_pagamento", "1");
+      history.replaceState(null, "", location.pathname);
+      return true;
+    }
+  } catch (e) {}
+  return false;
+}
+
 async function checarSessaoInicial() {
   if (!sb) { atualizarBotaoConta(); return; }
+  const voltouKirvano = detectarRetornoKirvano();
   // recebe uma sessão entregue por outro domínio (formato próprio hds_at/hds_rt —
   // NUNCA usa access_token/refresh_token puros, pra não confundir com o retorno
   // nativo do Google OAuth, que o próprio Supabase já sabe processar sozinho)
@@ -1416,7 +1429,9 @@ async function checarSessaoInicial() {
   if (session) {
     state.usuario = session.user;
     await atualizarPerfil();
-    if (await tentarLiberarPagamento()) return;
+    if (voltouKirvano || localStorage.getItem("hds_aguardando_pagamento") === "1") {
+      if (await tentarLiberarPagamento(voltouKirvano)) return;
+    }
     await zerarCreditosSeContaNova();
     if (await retomarFunilAposAuth()) return;
     try {
@@ -1435,6 +1450,10 @@ async function checarSessaoInicial() {
     return;
   } else {
     state.usuario = null;
+    if (voltouKirvano) {
+      abrirLogin(true, "pos_pagamento");
+      return;
+    }
     if (restaurarPreviewLocal()) {
       atualizarBotaoConta();
       show("book");
@@ -2636,6 +2655,9 @@ async function retomarFunilAposAuth() {
   }
 
   if (state.story && acao !== "pos_pagamento") {
+    try {
+      if (localStorage.getItem("hds_aguardando_pagamento") === "1") return false;
+    } catch (e) {}
     limparQuizLocal();
     limparAuthPosAcao();
     limparFunilCookie();
@@ -2745,13 +2767,21 @@ function abrirCheckoutLogado(qual) {
   window.open(OFERTAS[qual], "_blank");
 }
 
-async function tentarLiberarPagamento() {
+async function tentarLiberarPagamento(forcar) {
   try {
-    if (localStorage.getItem("hds_aguardando_pagamento") !== "1") return false;
-  } catch (e) { return false; }
-  for (let i = 0; i < 6; i++) {
+    if (!forcar && localStorage.getItem("hds_aguardando_pagamento") !== "1") return false;
+  } catch (e) { if (!forcar) return false; }
+
+  show("loading");
+  document.querySelector("#loading .loading-stage").innerHTML = `
+    <div class="loading-moon" aria-hidden="true"></div>
+    <div class="loading-msg">Confirmando seu pagamento...</div>
+    <div class="loading-sub">Só um instantinho — liberando sua conta ✨</div>`;
+
+  const tentativas = forcar ? 15 : 6;
+  for (let i = 0; i < tentativas; i++) {
     if (await finalizarAposPagamento()) return true;
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 2000));
   }
   return false;
 }
@@ -2764,9 +2794,15 @@ async function finalizarAposPagamento() {
   await atualizarPerfil();
   if (!(state.assinante || state.creditos > 0)) return false;
   try { localStorage.removeItem("hds_aguardando_pagamento"); } catch (e) {}
+  try { localStorage.removeItem("hds_preview"); } catch (e) {}
+  limparQuizLocal();
+  limparFunilCookie();
   const oferta = document.getElementById("ofertaOverlay");
   if (oferta) oferta.hidden = true;
-  if (state.story && !state.unlocked) await desbloquearHistoriaAtual();
+  if (state.story) {
+    state.unlocked = true;
+    await desbloquearHistoriaAtual();
+  }
   await guardarHistoriaNaConta();
   abrirDash();
   return true;
@@ -3646,7 +3682,7 @@ document.addEventListener("visibilitychange", async () => {
   // voltou do Kirvano depois de pagar → libera e manda pro dashboard
   try {
     if (localStorage.getItem("hds_aguardando_pagamento") === "1") {
-      if (await tentarLiberarPagamento()) return;
+      if (await tentarLiberarPagamento(true)) return;
     }
   } catch (e) {}
   // acabou de comprar uma narração nessa mesma aba? confirma e toca automaticamente
