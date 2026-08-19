@@ -891,6 +891,31 @@ function trackCompraAprovada() {
   try { sessionStorage.setItem("hds_pixel_purchase", "1"); } catch (e) {}
   try { localStorage.removeItem("hds_checkout_tipo"); } catch (e) {}
 }
+function dispararMetaTestSePedido() {
+  try {
+    var p = new URLSearchParams(location.search);
+    if (p.get("meta_test") !== "purchase") return;
+    var eventId = "browser_test_" + Date.now();
+    trackMeta("Purchase", {
+      value: PRECO_OFERTA.assinatura,
+      currency: "BRL",
+      content_name: "assinatura",
+      content_type: "product",
+      num_items: 1
+    }, eventId);
+    fetch("/api/meta-purchase", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: "inovagrowth@gmail.com",
+        value: PRECO_OFERTA.assinatura,
+        currency: "BRL",
+        content_name: "assinatura",
+        event_id: eventId
+      })
+    }).catch(function () {});
+  } catch (e) {}
+}
 
 /* ---------- estado ---------- */
 const state = {
@@ -1609,6 +1634,7 @@ async function restaurarSessaoCheckout() {
 }
 
 async function checarSessaoInicial() {
+  dispararMetaTestSePedido();
   if (!sb) { atualizarBotaoConta(); return; }
   const voltouKirvano = detectarRetornoKirvano();
   await restaurarSessaoCheckout();
