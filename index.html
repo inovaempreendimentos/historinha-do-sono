@@ -852,8 +852,12 @@ const OFERTAS = {
 };
 const PRECO_OFERTA = { assinatura: 39.90, pacote: 67, narracao: 7.90 };
 
-function trackMeta(evento, params) {
-  try { if (typeof fbq === "function") fbq("track", evento, params || {}); } catch (e) {}
+function trackMeta(evento, params, eventId) {
+  try {
+    if (typeof fbq !== "function") return;
+    if (eventId) fbq("track", evento, params || {}, { eventID: eventId });
+    else fbq("track", evento, params || {});
+  } catch (e) {}
 }
 function trackCadastroSeNovo() {
   try { if (sessionStorage.getItem("hds_pixel_reg")) return; } catch (e) {}
@@ -864,13 +868,27 @@ function trackCadastroSeNovo() {
   try { sessionStorage.setItem("hds_pixel_reg", "1"); } catch (e) {}
 }
 function trackCompraAprovada() {
+  try { if (sessionStorage.getItem("hds_pixel_purchase")) return; } catch (e) {}
   let tipo = "assinatura";
   try { tipo = localStorage.getItem("hds_checkout_tipo") || "assinatura"; } catch (e) {}
+  const value = PRECO_OFERTA[tipo] || 39.90;
+  const email = (state.usuario && state.usuario.email) || "";
+  const eventId = "purchase_" + (email || "anon") + "_" + Date.now();
   trackMeta("Purchase", {
-    value: PRECO_OFERTA[tipo] || 39.90,
+    value,
     currency: "BRL",
-    content_name: tipo
-  });
+    content_name: tipo,
+    content_type: "product",
+    num_items: 1
+  }, eventId);
+  if (email) {
+    fetch("/api/meta-purchase", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, value, currency: "BRL", content_name: tipo, event_id: eventId })
+    }).catch(function () {});
+  }
+  try { sessionStorage.setItem("hds_pixel_purchase", "1"); } catch (e) {}
   try { localStorage.removeItem("hds_checkout_tipo"); } catch (e) {}
 }
 
@@ -2964,6 +2982,7 @@ function irCheckout(qual) {
 function abrirCheckoutLogado(qual) {
   try { localStorage.setItem("hds_aguardando_pagamento", "1"); } catch (e) {}
   try { localStorage.setItem("hds_checkout_tipo", qual); } catch (e) {}
+  try { sessionStorage.removeItem("hds_pixel_purchase"); } catch (e) {}
   trackMeta("InitiateCheckout", {
     value: PRECO_OFERTA[qual] || 39.90,
     currency: "BRL",

@@ -3,6 +3,8 @@
 // Compra aprovada → libera créditos / assinatura no Supabase.
 // ============================================================
 
+import { enviarMetaPurchase, valorCompra, nomeProduto } from "../lib/meta-capi.js";
+
 const OFERTA_ASSINATURA = "baee13d4-4b07-432a-8d1b-26ad1e64a515";
 const OFERTA_PACOTE     = "02e33bab-929d-4b40-a97a-1fd0848893da";
 const OFERTA_PACOTE_OLD = "b95a04be-5c48-4f14-a9c1-3dd5d587b39e";
@@ -100,7 +102,14 @@ export default async function handler(req, res) {
 
     if (!perfil) {
       await sbPost(SUPABASE_URL, SERVICE_ROLE, "/rest/v1/pagamentos_pendentes", pendente);
-      return res.status(200).json({ ok: true, pendente: true, email, creditos: pendente.creditos });
+      const saleId = body.sale_id || body.id || body.transaction_id || "";
+      const metaPurchase = await enviarMetaPurchase({
+        email,
+        value: valorCompra({ assinatura: temAssinatura, pacote: temPacote, bump5: temBump5, body }),
+        content_name: nomeProduto({ assinatura: temAssinatura, pacote: temPacote, narracao: temNarracao }),
+        event_id: saleId ? `kirvano_${saleId}` : undefined
+      });
+      return res.status(200).json({ ok: true, pendente: true, email, creditos: pendente.creditos, metaPurchase });
     }
 
     const id = perfil.id;
@@ -132,7 +141,19 @@ export default async function handler(req, res) {
       }
     }
 
-    return res.status(200).json({ ok: true, email, aplicado: update, historiaNarrada: historiaMarcada });
+    const pagamentoAplicado = Object.keys(update).length > 2;
+    let metaPurchase = null;
+    if (pagamentoAplicado && (temAssinatura || temPacote || temNarracao || temBump5)) {
+      const saleId = body.sale_id || body.id || body.transaction_id || "";
+      metaPurchase = await enviarMetaPurchase({
+        email,
+        value: valorCompra({ assinatura: temAssinatura, pacote: temPacote, bump5: temBump5, body }),
+        content_name: nomeProduto({ assinatura: temAssinatura, pacote: temPacote, narracao: temNarracao }),
+        event_id: saleId ? `kirvano_${saleId}` : undefined
+      });
+    }
+
+    return res.status(200).json({ ok: true, email, aplicado: update, historiaNarrada: historiaMarcada, metaPurchase });
   } catch (err) {
     console.error("webhook erro:", err);
     return res.status(500).json({ error: "Erro ao processar." });
