@@ -5,6 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Historinha do Sono — seu filho é o herói da história de hoje</title>
 <meta name="description" content="Crie em 2 minutos uma historinha personalizada para dormir onde seu filho é o protagonista. Pronta para ler hoje à noite.">
+<!-- Meta Pixel -->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init','808134455126804');fbq('track','PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none" alt=""
+src="https://www.facebook.com/tr?id=808134455126804&ev=PageView&noscript=1"></noscript>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,650;0,9..144,750;1,9..144,500&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -839,6 +850,29 @@ const OFERTAS = {
   pacote: "https://pay.kirvano.com/02e33bab-929d-4b40-a97a-1fd0848893da",
   narracao: "https://pay.kirvano.com/ef28e79f-c76d-40f6-a503-dc252129940d"
 };
+const PRECO_OFERTA = { assinatura: 39.90, pacote: 67, narracao: 7.90 };
+
+function trackMeta(evento, params) {
+  try { if (typeof fbq === "function") fbq("track", evento, params || {}); } catch (e) {}
+}
+function trackCadastroSeNovo() {
+  try { if (sessionStorage.getItem("hds_pixel_reg")) return; } catch (e) {}
+  if (!state.usuario) return;
+  const criado = Date.parse(state.usuario.created_at || "") || 0;
+  if (!criado || Date.now() - criado > 20 * 60 * 1000) return;
+  trackMeta("CompleteRegistration");
+  try { sessionStorage.setItem("hds_pixel_reg", "1"); } catch (e) {}
+}
+function trackCompraAprovada() {
+  let tipo = "assinatura";
+  try { tipo = localStorage.getItem("hds_checkout_tipo") || "assinatura"; } catch (e) {}
+  trackMeta("Purchase", {
+    value: PRECO_OFERTA[tipo] || 39.90,
+    currency: "BRL",
+    content_name: tipo
+  });
+  try { localStorage.removeItem("hds_checkout_tipo"); } catch (e) {}
+}
 
 /* ---------- estado ---------- */
 const state = {
@@ -2636,6 +2670,7 @@ async function aposLoginSucesso() {
   authReceber = false;
   document.getElementById("authOverlay").hidden = true;
   await atualizarPerfil();
+  trackCadastroSeNovo();
   const aguardandoPg = (() => { try { return localStorage.getItem("hds_aguardando_pagamento") === "1"; } catch (e) { return false; } })();
   if (aguardandoPg || lerAuthPosAcao() === "pos_pagamento") {
     if (!state.story) restaurarPreviewLocal();
@@ -2928,6 +2963,12 @@ function irCheckout(qual) {
 }
 function abrirCheckoutLogado(qual) {
   try { localStorage.setItem("hds_aguardando_pagamento", "1"); } catch (e) {}
+  try { localStorage.setItem("hds_checkout_tipo", qual); } catch (e) {}
+  trackMeta("InitiateCheckout", {
+    value: PRECO_OFERTA[qual] || 39.90,
+    currency: "BRL",
+    content_name: qual
+  });
   setAuthPosAcao("pos_pagamento");
   if (state.story) {
     salvarPreviewLocal(state.story);
@@ -3034,6 +3075,7 @@ async function finalizarAposPagamento() {
     abrirDash();
   }
   atualizarBotaoConta();
+  trackCompraAprovada();
   return true;
 }
 
