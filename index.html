@@ -852,6 +852,48 @@ const OFERTAS = {
 };
 const PRECO_OFERTA = { assinatura: 39.90, pacote: 67, narracao: 7.90 };
 
+function metaCookies() {
+  var fbp = "", fbc = "";
+  try {
+    var parts = document.cookie.split("; ");
+    for (var i = 0; i < parts.length; i++) {
+      if (parts[i].indexOf("_fbp=") === 0) fbp = parts[i].slice(5);
+      if (parts[i].indexOf("_fbc=") === 0) fbc = parts[i].slice(5);
+    }
+    if (!fbc) {
+      var fbclid = new URLSearchParams(location.search).get("fbclid");
+      if (fbclid) fbc = "fb.1." + Date.now() + "." + fbclid;
+    }
+  } catch (e) {}
+  return { fbp: fbp, fbc: fbc };
+}
+function enviarEventoServidor(dados) {
+  try {
+    var c = metaCookies();
+    var payload = Object.assign({}, dados, { fbp: c.fbp, fbc: c.fbc, url: location.href });
+    if (payload.event_name === "Purchase" && payload.email && payload.value) {
+      var compra = Object.assign({}, payload);
+      delete compra.event_name;
+      fetch("/api/meta-purchase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(compra)
+      }).catch(function () {});
+      return;
+    }
+    fetch("/api/meta-event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    }).catch(function () {});
+  } catch (e) {}
+}
+function enviarPageViewServidor() {
+  try { if (sessionStorage.getItem("hds_capi_pv")) return; } catch (e) {}
+  enviarEventoServidor({ event_name: "PageView", event_id: "pv_" + Date.now() });
+  try { sessionStorage.setItem("hds_capi_pv", "1"); } catch (e) {}
+}
+
 function trackMeta(evento, params, eventId) {
   try {
     if (typeof fbq !== "function") return;
@@ -865,6 +907,7 @@ function trackCadastroSeNovo() {
   const criado = Date.parse(state.usuario.created_at || "") || 0;
   if (!criado || Date.now() - criado > 20 * 60 * 1000) return;
   trackMeta("CompleteRegistration");
+  enviarEventoServidor({ event_name: "CompleteRegistration", email: state.usuario.email, event_id: "reg_" + Date.now() });
   try { sessionStorage.setItem("hds_pixel_reg", "1"); } catch (e) {}
 }
 function trackCompraAprovada() {
@@ -881,13 +924,14 @@ function trackCompraAprovada() {
     content_type: "product",
     num_items: 1
   }, eventId);
-  if (email) {
-    fetch("/api/meta-purchase", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, value, currency: "BRL", content_name: tipo, event_id: eventId })
-    }).catch(function () {});
-  }
+  enviarEventoServidor({
+    event_name: "Purchase",
+    email: email || undefined,
+    value: value,
+    currency: "BRL",
+    content_name: tipo,
+    event_id: eventId
+  });
   try { sessionStorage.setItem("hds_pixel_purchase", "1"); } catch (e) {}
   try { localStorage.removeItem("hds_checkout_tipo"); } catch (e) {}
 }
@@ -903,17 +947,14 @@ function dispararMetaTestSePedido() {
       content_type: "product",
       num_items: 1
     }, eventId);
-    fetch("/api/meta-purchase", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: "inovagrowth@gmail.com",
-        value: PRECO_OFERTA.assinatura,
-        currency: "BRL",
-        content_name: "assinatura",
-        event_id: eventId
-      })
-    }).catch(function () {});
+    enviarEventoServidor({
+      event_name: "Purchase",
+      email: "inovagrowth@gmail.com",
+      value: PRECO_OFERTA.assinatura,
+      currency: "BRL",
+      content_name: "assinatura",
+      event_id: eventId
+    });
   } catch (e) {}
 }
 
@@ -1634,6 +1675,7 @@ async function restaurarSessaoCheckout() {
 }
 
 async function checarSessaoInicial() {
+  enviarPageViewServidor();
   dispararMetaTestSePedido();
   if (!sb) { atualizarBotaoConta(); return; }
   const voltouKirvano = detectarRetornoKirvano();
@@ -3013,6 +3055,14 @@ function abrirCheckoutLogado(qual) {
     value: PRECO_OFERTA[qual] || 39.90,
     currency: "BRL",
     content_name: qual
+  });
+  enviarEventoServidor({
+    event_name: "InitiateCheckout",
+    value: PRECO_OFERTA[qual] || 39.90,
+    currency: "BRL",
+    content_name: qual,
+    email: (state.usuario && state.usuario.email) || undefined,
+    event_id: "checkout_" + qual + "_" + Date.now()
   });
   setAuthPosAcao("pos_pagamento");
   if (state.story) {

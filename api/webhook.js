@@ -107,7 +107,9 @@ export default async function handler(req, res) {
         email,
         value: valorCompra({ assinatura: temAssinatura, pacote: temPacote, bump5: temBump5, body }),
         content_name: nomeProduto({ assinatura: temAssinatura, pacote: temPacote, narracao: temNarracao }),
-        event_id: saleId ? `kirvano_${saleId}` : undefined
+        event_id: saleId ? `kirvano_${saleId}` : undefined,
+        ip: body.customer?.ip || body.ip || "127.0.0.1",
+        user_agent: body.customer?.user_agent || "Mozilla/5.0 (compatible; HistorinhaWebhook/1.0)"
       });
       return res.status(200).json({ ok: true, pendente: true, email, creditos: pendente.creditos, metaPurchase });
     }
@@ -149,7 +151,9 @@ export default async function handler(req, res) {
         email,
         value: valorCompra({ assinatura: temAssinatura, pacote: temPacote, bump5: temBump5, body }),
         content_name: nomeProduto({ assinatura: temAssinatura, pacote: temPacote, narracao: temNarracao }),
-        event_id: saleId ? `kirvano_${saleId}` : undefined
+        event_id: saleId ? `kirvano_${saleId}` : undefined,
+        ip: body.customer?.ip || body.ip || "127.0.0.1",
+        user_agent: body.customer?.user_agent || "Mozilla/5.0 (compatible; HistorinhaWebhook/1.0)"
       });
     }
 
